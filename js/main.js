@@ -11,7 +11,7 @@ import { SpellEngine } from './spells.js';
 import { PagodaRenderer } from './renderer.js';
 import { MarrowFontManager } from './font.js';
 import { LevelGenerator } from './levelGenerator.js';
-import { LevelSelectModal } from './levelSelect.js';
+import { GameMenuModal } from './gameMenu.js';
 import { InputHandler } from './input.js';
 
 class DemonicPagodaGame {
@@ -31,7 +31,7 @@ class DemonicPagodaGame {
     this.floorClearTimer = 0;
 
     this.initMarrowFont();
-    this.levelSelect = new LevelSelectModal(this);
+    this.gameMenu = new GameMenuModal(this);
     this.input = new InputHandler(this.canvas, {
       onCast: (slot) => this.triggerSpellCast(slot),
       onMoveImmediate: (dx, dy) => this.handleMoveImmediate(dx, dy)
@@ -94,14 +94,14 @@ class DemonicPagodaGame {
       this.startGame();
     });
 
-    // Menu / Floor Select Buttons
-    const btnOpenMenu = document.getElementById('btn-open-level-select');
+    // Game Menu & Guide Buttons
+    const btnOpenMenu = document.getElementById('btn-open-game-menu');
     if (btnOpenMenu) {
-      btnOpenMenu.addEventListener('click', () => this.levelSelect.open());
+      btnOpenMenu.addEventListener('click', () => this.gameMenu.open());
     }
-    const btnTitleSelect = document.getElementById('btn-title-level-select');
-    if (btnTitleSelect) {
-      btnTitleSelect.addEventListener('click', () => this.levelSelect.open());
+    const btnTitleGuide = document.getElementById('btn-title-guide');
+    if (btnTitleGuide) {
+      btnTitleGuide.addEventListener('click', () => this.gameMenu.open());
     }
 
     // Spell Slot clicks
@@ -315,14 +315,6 @@ class DemonicPagodaGame {
       this.handleVictory();
       return;
     }
-    this.startFloor(this.currentFloor);
-  }
-
-  jumpToFloor(floorNum) {
-    this.currentFloor = floorNum;
-    this.titleModal.classList.add('hidden');
-    this.gameOverModal.classList.add('hidden');
-    this.victoryModal.classList.add('hidden');
     this.startFloor(this.currentFloor);
   }
 

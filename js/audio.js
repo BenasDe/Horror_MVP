@@ -35,6 +35,15 @@ class HorrorAudioEngine {
     }
   }
 
+  toggleMute() {
+    this.ensureContext();
+    this.isMuted = !this.isMuted;
+    if (this.droneGain && this.ctx) {
+      this.droneGain.gain.setValueAtTime(this.isMuted ? 0 : 0.06, this.ctx.currentTime);
+    }
+    return this.isMuted;
+  }
+
   startAmbientDrone() {
     if (!this.ctx || this.droneGain) return;
 
@@ -68,7 +77,7 @@ class HorrorAudioEngine {
   // Taoist Ritual Gong / Bell (Floor start / Font entry)
   playGong(isDark = false) {
     this.ensureContext();
-    if (!this.ctx) return;
+    if (!this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -91,7 +100,7 @@ class HorrorAudioEngine {
   // Jiangshi Hop Impact (Wooden / flesh floor thud)
   playJiangshiHop() {
     this.ensureContext();
-    if (!this.ctx) return;
+    if (!this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -114,7 +123,7 @@ class HorrorAudioEngine {
   // Player Grid Step (Light bone click)
   playPlayerStep() {
     this.ensureContext();
-    if (!this.ctx) return;
+    if (!this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -168,7 +177,7 @@ class HorrorAudioEngine {
   // Spell Detonation / Status Eruption
   playSpellDetonation(scale = 1.0) {
     this.ensureContext();
-    if (!this.ctx) return;
+    if (!this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
     // Sub bass drop
@@ -213,7 +222,7 @@ class HorrorAudioEngine {
   // Soul Talisman Shatter (Damage taken by player)
   playDamageTaken() {
     this.ensureContext();
-    if (!this.ctx) return;
+    if (!this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -237,7 +246,7 @@ class HorrorAudioEngine {
   // Shield Shatter
   playShieldBreak() {
     this.ensureContext();
-    if (!this.ctx) return;
+    if (!this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -260,7 +269,7 @@ class HorrorAudioEngine {
   // Marrow / Demonic Qi Harvest
   playMarrowCollect() {
     this.ensureContext();
-    if (!this.ctx) return;
+    if (!this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();

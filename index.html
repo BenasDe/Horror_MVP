@@ -47,7 +47,7 @@
         </div>
 
         <div class="stat-group menu-group">
-          <button type="button" id="btn-open-level-select" class="gothic-btn menu-btn">📜 MENU / FLOORS</button>
+          <button type="button" id="btn-open-game-menu" class="gothic-btn menu-btn">📜 GAME MENU</button>
         </div>
       </div>
     </header>
@@ -164,7 +164,7 @@
 
         <div class="start-actions">
           <button id="btn-start-game" class="gothic-btn pulse-glow">AWAKEN ROGUE SOUL</button>
-          <button type="button" id="btn-title-level-select" class="gothic-btn test-select-btn">SELECT FLOOR (1-26)</button>
+          <button type="button" id="btn-title-guide" class="gothic-btn test-select-btn">📜 HOW TO PLAY</button>
         </div>
       </div>
     </div>
@@ -279,29 +279,187 @@
       </div>
     </div>
 
-    <!-- MODAL 5: Menu & Level Selection (Testing Pavilion) -->
-    <div id="level-select-modal" class="modal-overlay hidden">
-      <div class="modal-content gothic-box level-select-box">
-        <div class="level-select-header">
-          <h2 class="level-select-title text-gold">🏛️ TESTING PAVILION • FLOOR SELECTION</h2>
-          <p class="level-select-desc">Select any floor (1-26) to test enemy abilities, chess talismans, bone cage destruction, and boss patterns.</p>
+    <!-- MODAL 5: Game Menu & Cultivator Compendium Guide -->
+    <div id="game-menu-modal" class="modal-overlay hidden">
+      <div class="modal-content gothic-box game-menu-box">
+        <div class="menu-modal-header">
+          <h2 class="menu-modal-title text-gold">📜 CULTIVATOR'S COMPENDIUM • GAMEPLAY MANUAL</h2>
+          <p class="menu-modal-desc">Survival doctrine and forbidden talisman arts for escaping the 26-floor Blood Marrow Pagoda.</p>
         </div>
 
-        <!-- Cheats / Quick Testing Toolbar -->
-        <div class="test-toolbar">
-          <span class="test-toolbar-label">QUICK TEST AIDS:</span>
-          <button type="button" id="btn-test-marrow" class="test-tool-btn">+100 MARROW</button>
-          <button type="button" id="btn-test-restore" class="test-tool-btn">RESTORE HITS & QI</button>
-          <button type="button" id="btn-test-spells" class="test-tool-btn">ALL TALISMANS (1-4)</button>
+        <!-- Category Tabs -->
+        <div class="guide-nav-tabs">
+          <button type="button" class="guide-tab-btn active" data-tab="tab-controls">🎮 CONTROLS & SURVIVAL</button>
+          <button type="button" class="guide-tab-btn" data-tab="tab-spells">♟️ CHESS TALISMANS</button>
+          <button type="button" class="guide-tab-btn" data-tab="tab-tiles">🪨 TILE HAZARDS & BONES</button>
+          <button type="button" class="guide-tab-btn" data-tab="tab-sanctuary">🩸 SANCTUARY & SHOP</button>
         </div>
 
-        <!-- 26 Floors Grid -->
-        <div id="level-select-grid" class="level-select-grid">
-          <!-- Dynamically generated floor buttons -->
+        <!-- Tab 1: Controls & Survival -->
+        <div id="tab-controls" class="guide-tab-panel active">
+          <div class="guide-grid">
+            <div class="guide-card">
+              <div class="guide-card-title text-cyan">🏃 Grid Movement</div>
+              <div class="guide-card-body">
+                <p><strong>Desktop:</strong> Use <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or <kbd>Arrow Keys</kbd> to step cardinally across the 9x9 grid.</p>
+                <p><strong>Mobile:</strong> Tap the Virtual D-Pad or swipe directly anywhere on the canvas to leap.</p>
+                <p>Your step direction sets your <strong>facing arrow</strong>, which dictates the trajectory of directional spells.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-crimson">⚠️ Rooted While Channeling</div>
+              <div class="guide-card-body">
+                <p>When you prime a talisman, your rogue soul is <strong>rooted completely in place</strong> until the spell detonates.</p>
+                <p>Never start channeling when a Jiangshi is already winding up to hop into your tile!</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-gold">🩸 Soul Hits & Qi Stamina</div>
+              <div class="guide-card-body">
+                <p>You begin with only <strong>1 Soul Hit</strong>! A single fatal touch extinguishes your soul.</p>
+                <p><strong>Floor Qi Stamina:</strong> Talismans draw on limited Qi each floor. Slay fiends or reach Sanctuaries to replenish stamina.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-bone">💀 Corrupted Marrow</div>
+              <div class="guide-card-body">
+                <p>Slaying corpse fiends extracts precious Corrupted Marrow.</p>
+                <p>Carry your marrow to safe floors to buy permanent stat upgrades and forbidden spells from the vampire shopkeeper.</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="level-select-actions">
-          <button type="button" id="btn-close-level-select" class="gothic-btn close-menu-btn">CLOSE MENU</button>
+        <!-- Tab 2: Chess Talismans -->
+        <div id="tab-spells" class="guide-tab-panel">
+          <div class="guide-grid">
+            <div class="guide-card">
+              <div class="guide-card-title text-gold">♟️ Pawn's Stride [Slot 1 / Q]</div>
+              <div class="guide-card-body">
+                <p>Strikes <strong>2 tiles straight ahead</strong> in your facing direction. Swift 0.5s channel time. Ideal for quick head-on corpse purges.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-gold">♞ Knight's Talon [Slot 2 / E]</div>
+              <div class="guide-card-body">
+                <p>Bypasses obstacles to strike all <strong>8 L-shaped perimeter tiles</strong> (2x1, 1x2). Perfect for clearing enemies closing in around you.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-gold">♜ Rook's Severance [Slot 3 / R]</div>
+              <div class="guide-card-body">
+                <p>Pierces across the entire floor in <strong>all 4 cardinal lines</strong> (up, down, left, right). Obliterates entire ranks and files in one blast.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-gold">♝ Bishop's Stride</div>
+              <div class="guide-card-body">
+                <p>Sends cutting Yin shockwaves along <strong>all 4 diagonal lines</strong>. Excellent for sniping drifting Wraiths.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-crimson">♛ Queen's Ruin [Slot 4 / Space]</div>
+              <div class="guide-card-body">
+                <p>Unleashes cataclysmic <strong>8-directional cleave</strong> across the whole arena. Requires an extreme 3.0s root channel.</p>
+                <p><strong>Demonic Backlash:</strong> If ANY living fiend survives the blast, you sacrifice 1 Soul Hit!</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-cyan">🛡️ Tortoise Sanctuary</div>
+              <div class="guide-card-body">
+                <p>Erects <strong>Taoist Wards</strong> on 4 cardinal tiles around you. Absorbs 1 fatal enemy strike before shattering.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Tile Hazards & Bones -->
+        <div id="tab-tiles" class="guide-tab-panel">
+          <div class="guide-grid">
+            <div class="guide-card">
+              <div class="guide-card-title text-emerald">🟢 Jade Green Spikes (Player)</div>
+              <div class="guide-card-body">
+                <p>Erupted by your talismans. <strong>100% harmless to the player</strong> and safe to walk on.</p>
+                <p>Lethal to corpse fiends: any enemy stepping onto or caught in green spikes takes damage instantly!</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-crimson">🔴 Crimson Blood Spikes (Enemy)</div>
+              <div class="guide-card-body">
+                <p>Spawned by Jiangshi, Wraiths, Corpse Scribes, and the Emperor. <strong>Deadly to your soul</strong>.</p>
+                <p><strong>Stacking Priority:</strong> If enemy and player spikes occupy the same tile, enemy blood spikes ALWAYS show on top with warning skulls to keep you safe!</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-bone">🦴 Bone Pillars & Cages (1-Hit Break)</div>
+              <div class="guide-card-body">
+                <p>Inaccessible bone monoliths created by ruins and Corpse Scribes to trap you.</p>
+                <p><strong>1-Hit Destruction:</strong> Any damaging player spell (Pawn, Knight, Rook, Queen) strikes and <strong>shatters bones in 1 hit</strong> with bone marrow bursts!</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-cyan">🛡️ Cyan Taoist Wards (1-Hit Shield)</div>
+              <div class="guide-card-body">
+                <p>Taoist barrier tiles that block enemy penetrations.</p>
+                <p>Absorbs 1 hit completely and shatters, protecting whatever stood on the tile.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Sanctuary & Progression -->
+        <div id="tab-sanctuary" class="guide-tab-panel">
+          <div class="guide-grid">
+            <div class="guide-card">
+              <div class="guide-card-title text-gold">🏛️ Marrow Font Sanctuaries</div>
+              <div class="guide-card-body">
+                <p>Located on safe floors: <strong>Floors 5, 10, 15, 20, and 25</strong>.</p>
+                <p>All demonic pressure lifts. All Soul Hits are restored and floor cast Qi is replenished automatically upon entry.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-cyan">📍 Ascension Checkpoints</div>
+              <div class="guide-card-body">
+                <p>Each Sanctuary reached saves a permanent <strong>Ascension Checkpoint</strong>.</p>
+                <p>If your soul is extinguished on higher floors, you can revive right at your last checkpoint with all upgrades intact!</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-crimson">🧛 Lady Xiao Yin (Marrow Alchemist)</div>
+              <div class="guide-card-body">
+                <p>The mysterious vampire shopkeeper stationed at every fountain.</p>
+                <p>Trade your harvested Corrupted Marrow to permanently upgrade <strong>Max Soul Hits</strong>, improve <strong>Agility (movement speed)</strong>, increase <strong>Floor Qi Stamina</strong>, and purchase high-tier chess talismans.</p>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-title text-gold">💀 Floor 26: The Corpse Emperor</div>
+              <div class="guide-card-body">
+                <p>The pinnacle of the pagoda. An 8-Hit demonic titan that moves swiftly across strategic thrones, summons fiends every 6s, and gains <strong>2s damage immunity</strong> after each hit.</p>
+                <p>Shatter his seal to complete the demonic ascension cycle!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Menu Action Footer -->
+        <div class="menu-modal-footer">
+          <button type="button" id="btn-audio-toggle" class="gothic-btn menu-tool-btn">🔊 SOUND: ON</button>
+          <button type="button" id="btn-menu-restart-cp" class="gothic-btn menu-tool-btn">REVIVE AT CHECKPOINT</button>
+          <button type="button" id="btn-close-game-menu" class="gothic-btn pulse-glow close-menu-btn">RESUME ASCENSION</button>
         </div>
       </div>
     </div>
