@@ -639,3 +639,4 @@ class DemonicPagodaGame {
 window.addEventListener('DOMContentLoaded', () => {
   window.game = new DemonicPagodaGame();
 });
+
