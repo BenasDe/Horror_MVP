@@ -47,10 +47,10 @@ export class ThreePagodaRenderer {
     this.scene.background = new THREE.Color(0x07050b);
     this.scene.fog = new THREE.FogExp2(0x07050b, 0.022);
 
-    // 3. Tilted Isometric Perspective Camera
+    // 3. Tilted Isometric Perspective Camera (top-down view for clear grid navigation)
     this.camera = new THREE.PerspectiveCamera(40, 1.0, 0.1, 100);
-    this.baseCameraPos = new THREE.Vector3(0, 23.5, 17.5);
-    this.cameraTarget = new THREE.Vector3(0, -0.6, 0.8);
+    this.baseCameraPos = new THREE.Vector3(0, 26.5, 9.5);
+    this.cameraTarget = new THREE.Vector3(0, 0, 0);
     this.camera.position.copy(this.baseCameraPos);
     this.camera.lookAt(this.cameraTarget);
 
@@ -427,8 +427,8 @@ export class ThreePagodaRenderer {
 
   spawnBloodParticles(x, y, count = 16) {
     // Convert 2D pixel to 3D world
-    const gx = Math.floor(x / this.grid.tileSize);
-    const gy = Math.floor(y / this.grid.tileSize);
+    const gx = (x - this.grid.padding) / this.grid.tileSize;
+    const gy = (y - this.grid.padding) / this.grid.tileSize;
     const w = this.gridToWorld(gx, gy);
 
     for (let i = 0; i < count; i++) {
@@ -492,6 +492,7 @@ export class ThreePagodaRenderer {
     } else {
       this.camera.position.copy(this.baseCameraPos);
     }
+    this.camera.lookAt(this.cameraTarget);
 
     // 2. Flickering corner torch lights
     const now = Date.now() / 1000;
@@ -675,9 +676,9 @@ export class ThreePagodaRenderer {
   syncPlayer(player) {
     if (!player) return;
 
-    // Convert player render coordinates
-    const gx = player.renderX / this.grid.tileSize;
-    const gy = player.renderY / this.grid.tileSize;
+    // Convert player render coordinates (subtract grid padding to center on tile)
+    const gx = (player.renderX - this.grid.padding) / this.grid.tileSize;
+    const gy = (player.renderY - this.grid.padding) / this.grid.tileSize;
     const w = this.gridToWorld(gx, gy);
 
     // Floating spirit bob
@@ -728,8 +729,9 @@ export class ThreePagodaRenderer {
       if (!enemy.alive) return;
       const mesh = this.getOrCreateEnemyMesh(enemy);
 
-      const gx = enemy.renderX / this.grid.tileSize;
-      const gy = enemy.renderY / this.grid.tileSize;
+      // Convert enemy render coordinates (subtract grid padding to center on tile)
+      const gx = (enemy.renderX - this.grid.padding) / this.grid.tileSize;
+      const gy = (enemy.renderY - this.grid.padding) / this.grid.tileSize;
       const w = this.gridToWorld(gx, gy);
 
       // 3D Parabolic Hop Animation for Jiangshi
