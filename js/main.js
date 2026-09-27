@@ -30,6 +30,7 @@ class DemonicPagodaGame {
 
     // Keys currently pressed
     this.keysDown = {};
+    this.touchDirection = null;
 
     this.initMarrowFont();
     this.bindDOM();
@@ -94,7 +95,10 @@ class DemonicPagodaGame {
     for (let i = 0; i < 4; i++) {
       const slotEl = document.getElementById(`slot-${i}`);
       if (slotEl) {
-        slotEl.addEventListener('click', () => this.triggerSpellCast(i));
+        slotEl.addEventListener('click', () => {
+          horrorAudio.ensureContext();
+          this.triggerSpellCast(i);
+        });
       }
     }
 
@@ -135,6 +139,76 @@ class DemonicPagodaGame {
     window.addEventListener('keyup', (e) => {
       this.keysDown[e.code] = false;
     });
+
+    // Mobile Virtual D-Pad bindings
+    const dpadButtons = [
+      { id: 'btn-dpad-up', dx: 0, dy: -1 },
+      { id: 'btn-dpad-down', dx: 0, dy: 1 },
+      { id: 'btn-dpad-left', dx: -1, dy: 0 },
+      { id: 'btn-dpad-right', dx: 1, dy: 0 }
+    ];
+
+    dpadButtons.forEach(({ id, dx, dy }) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+
+      const handlePress = (e) => {
+        if (e.cancelable) e.preventDefault();
+        horrorAudio.ensureContext();
+        btn.classList.add('active');
+        this.touchDirection = { dx, dy };
+        if (this.gameState === 'PLAYING' && !this.player.isMoving && !this.player.isCasting) {
+          this.player.tryMove(dx, dy, this.enemies);
+        }
+      };
+
+      const handleRelease = (e) => {
+        btn.classList.remove('active');
+        if (this.touchDirection && this.touchDirection.dx === dx && this.touchDirection.dy === dy) {
+          this.touchDirection = null;
+        }
+      };
+
+      btn.addEventListener('pointerdown', handlePress);
+      btn.addEventListener('pointerup', handleRelease);
+      btn.addEventListener('pointercancel', handleRelease);
+      btn.addEventListener('pointerleave', handleRelease);
+    });
+
+    // Touch swipe gestures on gameCanvas
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    this.canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        horrorAudio.ensureContext();
+      }
+    }, { passive: true });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      if (this.gameState !== 'PLAYING') return;
+      if (this.player.isMoving || this.player.isCasting) return;
+
+      if (e.changedTouches.length > 0) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+        const swipeThreshold = 24; // pixels
+
+        if (absX > swipeThreshold || absY > swipeThreshold) {
+          if (absX > absY) {
+            const dx = deltaX > 0 ? 1 : -1;
+            this.player.tryMove(dx, 0, this.enemies);
+          } else {
+            const dy = deltaY > 0 ? 1 : -1;
+            this.player.tryMove(0, dy, this.enemies);
+          }
+        }
+      }
+    }, { passive: true });
   }
 
   showCombatBanner(text, duration = 1.8) {
@@ -352,10 +426,10 @@ class DemonicPagodaGame {
     let dx = 0;
     let dy = 0;
 
-    if (this.keysDown['KeyW'] || this.keysDown['ArrowUp']) dy -= 1;
-    else if (this.keysDown['KeyS'] || this.keysDown['ArrowDown']) dy += 1;
-    else if (this.keysDown['KeyA'] || this.keysDown['ArrowLeft']) dx -= 1;
-    else if (this.keysDown['KeyD'] || this.keysDown['ArrowRight']) dx += 1;
+    if (this.keysDown['KeyW'] || this.keysDown['ArrowUp'] || (this.touchDirection && this.touchDirection.dy < 0)) dy -= 1;
+    else if (this.keysDown['KeyS'] || this.keysDown['ArrowDown'] || (this.touchDirection && this.touchDirection.dy > 0)) dy += 1;
+    else if (this.keysDown['KeyA'] || this.keysDown['ArrowLeft'] || (this.touchDirection && this.touchDirection.dx < 0)) dx -= 1;
+    else if (this.keysDown['KeyD'] || this.keysDown['ArrowRight'] || (this.touchDirection && this.touchDirection.dx > 0)) dx += 1;
 
     if (dx !== 0 || dy !== 0) {
       this.player.tryMove(dx, dy, this.enemies);

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>The Blood Marrow Pagoda: Demonic Grid</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -66,6 +66,17 @@
 
       <!-- Quick Combat Notifications -->
       <div id="combat-banner" class="hidden"></div>
+
+      <!-- Mobile Virtual D-Pad Overlay -->
+      <div id="mobile-dpad" class="mobile-dpad">
+        <button type="button" class="dpad-btn dpad-up" id="btn-dpad-up" aria-label="Move Up">▲</button>
+        <div class="dpad-row">
+          <button type="button" class="dpad-btn dpad-left" id="btn-dpad-left" aria-label="Move Left">◀</button>
+          <div class="dpad-center"></div>
+          <button type="button" class="dpad-btn dpad-right" id="btn-dpad-right" aria-label="Move Right">▶</button>
+        </div>
+        <button type="button" class="dpad-btn dpad-down" id="btn-dpad-down" aria-label="Move Down">▼</button>
+      </div>
     </main>
 
     <!-- Bottom Spells Hotbar -->
@@ -126,11 +137,12 @@
 
       <!-- Controls Hint -->
       <div class="controls-hint">
-        <span>[W A S D] / [Arrows] Real-Time Move</span>
+        <span class="desktop-hint">[W A S D] / [Arrows] Move</span>
+        <span class="mobile-hint">D-Pad / Swipe Grid to Move</span>
         <span>•</span>
-        <span>[1 2 3 4] Cast Demonic Talismans</span>
+        <span>Tap / [1-4] Cast</span>
         <span>•</span>
-        <span>Movement Locked while Channeling</span>
+        <span>Locked while Channeling</span>
       </div>
     </footer>
 
