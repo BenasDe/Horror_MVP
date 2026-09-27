@@ -26,12 +26,12 @@ class BaseEnemy {
     this.toY = y;
     this.isMoving = false;
     this.moveTimer = 0;
-    this.moveDuration = 0.3; // standard hop duration
+    this.moveDuration = 0.22; // snappier movement
 
     // Windup / Telegraph for physical collision
     this.isWindingUp = false;
     this.windupTimer = 0;
-    this.windupDuration = 0.35; // 0.35s visible windup
+    this.windupDuration = 0.26; // 0.26s fast visible windup
     this.intendedTarget = null;
 
     // Casting state
@@ -89,10 +89,10 @@ class BaseEnemy {
 export class JiangshiEnemy extends BaseEnemy {
   constructor(grid, x, y) {
     super(grid, x, y, "Hopping Jiangshi", 1, 10);
-    this.hopCooldown = 1.1; // hops every 1.1s
-    this.timer = 0.5 + Math.random() * 0.5;
-    this.spellCooldown = 6.0;
-    this.spellTimer = 3.0 + Math.random() * 2.0;
+    this.hopCooldown = 0.85; // faster rhythmic hops (was 1.1s)
+    this.timer = 0.3 + Math.random() * 0.4;
+    this.spellCooldown = 5.0;
+    this.spellTimer = 2.5 + Math.random() * 1.5;
   }
 
   update(dt, player, enemies) {
@@ -248,10 +248,10 @@ export class JiangshiEnemy extends BaseEnemy {
 export class WraithEnemy extends BaseEnemy {
   constructor(grid, x, y) {
     super(grid, x, y, "Resentful Wraith", 1, 15);
-    this.moveCooldown = 1.4;
-    this.timer = Math.random();
-    this.spellCooldown = 7.0;
-    this.spellTimer = 2.0;
+    this.moveCooldown = 1.05; // faster hovering (was 1.4)
+    this.timer = Math.random() * 0.5;
+    this.spellCooldown = 5.5;
+    this.spellTimer = 1.5;
   }
 
   update(dt, player, enemies) {
@@ -296,7 +296,7 @@ export class WraithEnemy extends BaseEnemy {
       this.toY = nextY;
       this.isMoving = true;
       this.moveTimer = 0;
-      this.moveDuration = 0.5;
+      this.moveDuration = 0.35; // faster glide
 
       if (nextX === player.x && nextY === player.y) {
         player.takeDamage(false, "Wraith Soul Chill");
@@ -306,7 +306,7 @@ export class WraithEnemy extends BaseEnemy {
 
   castBishopGaze(player) {
     this.isCasting = true;
-    this.castTimer = 1.2;
+    this.castTimer = 0.95;
     this.spellTimer = 0;
 
     // Diagonal X pattern across 4 directions
@@ -316,7 +316,7 @@ export class WraithEnemy extends BaseEnemy {
         const tx = this.x + dx * s;
         const ty = this.y + dy * s;
         if (this.grid.isInBounds(tx, ty)) {
-          this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 1.2, 'enemy', (px, py) => {
+          this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 0.95, 'enemy', (px, py) => {
             if (px === player.x && py === player.y) {
               player.takeDamage(false, "Wraith's Diagonal Hex");
             }
@@ -331,8 +331,8 @@ export class WraithEnemy extends BaseEnemy {
 export class CorpseScribeEnemy extends BaseEnemy {
   constructor(grid, x, y) {
     super(grid, x, y, "Corpse Scribe", 2, 25);
-    this.spellTimer = 1.5;
-    this.actionCooldown = 3.5;
+    this.spellTimer = 1.0;
+    this.actionCooldown = 2.6; // faster casting rotation (was 3.5)
   }
 
   update(dt, player, enemies) {
@@ -368,7 +368,7 @@ export class CorpseScribeEnemy extends BaseEnemy {
 
   castRookLance(player) {
     this.isCasting = true;
-    this.castTimer = 1.0;
+    this.castTimer = 0.8;
 
     // Orthogonal line along same row or col towards player
     const dx = Math.sign(player.x - this.x);
@@ -383,7 +383,7 @@ export class CorpseScribeEnemy extends BaseEnemy {
       const ty = this.y + stepY * s;
       if (!this.grid.isInBounds(tx, ty)) break;
 
-      this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 1.0, 'enemy', (px, py) => {
+      this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 0.8, 'enemy', (px, py) => {
         if (px === player.x && py === player.y) {
           player.takeDamage(false, "Scribe's Bone Lance");
         }
@@ -393,7 +393,7 @@ export class CorpseScribeEnemy extends BaseEnemy {
 
   castBoneCage(player) {
     this.isCasting = true;
-    this.castTimer = 0.7;
+    this.castTimer = 0.55;
 
     // Surround player with Inaccessible bone pillars
     const cardinals = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -401,7 +401,7 @@ export class CorpseScribeEnemy extends BaseEnemy {
       const tx = player.x + ox;
       const ty = player.y + oy;
       if (this.grid.isInBounds(tx, ty)) {
-        this.grid.telegraphTile(tx, ty, TILE_STATUS.INACCESSIBLE, 0.7, 'enemy');
+        this.grid.telegraphTile(tx, ty, TILE_STATUS.INACCESSIBLE, 0.55, 'enemy');
       }
     });
   }
@@ -412,7 +412,7 @@ export class CorpseEmperorBoss extends BaseEnemy {
   constructor(grid, x = 4, y = 2) {
     super(grid, x, y, "Corpse Emperor", 6, 100);
     this.phase = 1;
-    this.attackTimer = 1.0;
+    this.attackTimer = 0.8;
     this.attackCycle = 0;
   }
 
@@ -422,7 +422,7 @@ export class CorpseEmperorBoss extends BaseEnemy {
 
     this.attackTimer -= dt;
     if (this.attackTimer <= 0) {
-      this.attackTimer = 3.2;
+      this.attackTimer = 2.4; // faster boss attack cycle (was 3.2s)
       this.executeBossAttack(player);
     }
   }
@@ -438,7 +438,7 @@ export class CorpseEmperorBoss extends BaseEnemy {
           const tx = this.x + dx * s;
           const ty = this.y + dy * s;
           if (this.grid.isInBounds(tx, ty)) {
-            this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 1.1, 'enemy', (px, py) => {
+            this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 1.0, 'enemy', (px, py) => {
               if (px === player.x && py === player.y) {
                 player.takeDamage(false, "Imperial Cross Laser");
               }
@@ -456,7 +456,7 @@ export class CorpseEmperorBoss extends BaseEnemy {
         const tx = this.x + ox;
         const ty = this.y + oy;
         if (this.grid.isInBounds(tx, ty)) {
-          this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 0.9, 'enemy', (px, py) => {
+          this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 0.8, 'enemy', (px, py) => {
             if (px === player.x && py === player.y) {
               player.takeDamage(false, "Demonic Knight Rain");
             }
@@ -464,19 +464,19 @@ export class CorpseEmperorBoss extends BaseEnemy {
         }
       });
     } else {
-      // Corpse Extraction (Board apocalypse with random safe tiles)
+      // Corpse Extraction (Board apocalypse with random safe tiles on 9x9 grid)
       const safeTiles = [
         { x: 1, y: 1 },
-        { x: 8, y: 1 },
-        { x: 1, y: 8 },
-        { x: 8, y: 8 }
+        { x: 7, y: 1 },
+        { x: 1, y: 7 },
+        { x: 7, y: 7 }
       ];
       // Telegraph everything except safe tiles
       for (let y = 0; y < this.grid.rows; y++) {
         for (let x = 0; x < this.grid.cols; x++) {
           const isSafe = safeTiles.some(st => st.x === x && st.y === y);
           if (!isSafe) {
-            this.grid.telegraphTile(x, y, TILE_STATUS.DAMAGING, 2.5, 'enemy', (px, py) => {
+            this.grid.telegraphTile(x, y, TILE_STATUS.DAMAGING, 2.0, 'enemy', (px, py) => {
               if (px === player.x && py === player.y) {
                 player.takeDamage(false, "Emperor's Apocalyptic Purge");
               }

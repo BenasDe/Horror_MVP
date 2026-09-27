@@ -1,6 +1,6 @@
 /**
  * THE BLOOD MARROW PAGODA: DEMONIC GRID
- * Grid System & Tile State Manager
+ * Grid System & Layered Tile State Manager (Player & Enemy Stacking)
  */
 
 import { GRID_CONFIG, TILE_STATUS, TILE_DURATIONS } from './config.js';
@@ -24,9 +24,22 @@ export class PagodaGrid {
         row.push({
           x,
           y,
+          // Synced top-level status (enemy prioritized over player)
           status: TILE_STATUS.NORMAL,
           duration: 0,
-          owner: null, // 'player' | 'enemy'
+          owner: null,
+          // Layered active effects
+          effects: {
+            player: null,      // { status, duration }
+            enemy: null,       // { status, duration }
+            environment: null  // { status, duration }
+          },
+          // Layered telegraphs
+          telegraphs: {
+            player: null,      // { active, timer, totalDuration, targetStatus, onTrigger }
+            enemy: null        // { active, timer, totalDuration, targetStatus, onTrigger }
+          },
+          // Legacy telegraph reference
           telegraph: {
             active: false,
             timer: 0,
@@ -48,6 +61,8 @@ export class PagodaGrid {
         t.status = TILE_STATUS.NORMAL;
         t.duration = 0;
         t.owner = null;
+        t.effects = { player: null, enemy: null, environment: null };
+        t.telegraphs = { player: null, enemy: null };
         t.telegraph.active = false;
         t.telegraph.timer = 0;
       }
@@ -63,37 +78,50 @@ export class PagodaGrid {
     return this.tiles[y][x];
   }
 
-  // Set tile directly to active status
+  // Set tile directly to active status with layer ownership
   setTileStatus(x, y, status, duration = null, owner = 'player') {
     const tile = this.getTile(x, y);
     if (!tile) return false;
 
-    // A Shielded tile cannot be overridden by DAMAGING or INACCESSIBLE unless owner is same or shield expires
-    if (tile.status === TILE_STATUS.SHIELDED && status !== TILE_STATUS.SHIELDED && status !== TILE_STATUS.NORMAL) {
+    // Ward check: If tile is shielded by player, enemy damaging cannot penetrate
+    if (this.isShielded(x, y) && owner === 'enemy' && status !== TILE_STATUS.NORMAL) {
       return false; // Ward protects tile
     }
 
-    tile.status = status;
-    tile.owner = owner;
-
+    let defaultDuration = 0;
     if (duration !== null) {
-      tile.duration = duration;
+      defaultDuration = duration;
     } else {
-      if (status === TILE_STATUS.DAMAGING) tile.duration = TILE_DURATIONS.DAMAGING;
-      else if (status === TILE_STATUS.INACCESSIBLE) tile.duration = TILE_DURATIONS.INACCESSIBLE;
-      else if (status === TILE_STATUS.SHIELDED) tile.duration = TILE_DURATIONS.SHIELDED;
-      else tile.duration = 0;
+      if (status === TILE_STATUS.DAMAGING) defaultDuration = TILE_DURATIONS.DAMAGING;
+      else if (status === TILE_STATUS.INACCESSIBLE) defaultDuration = TILE_DURATIONS.INACCESSIBLE;
+      else if (status === TILE_STATUS.SHIELDED) defaultDuration = TILE_DURATIONS.SHIELDED;
     }
 
+    const key = (owner === 'environment') ? 'environment' : (owner === 'enemy' ? 'enemy' : 'player');
+
+    if (status === TILE_STATUS.NORMAL) {
+      if (owner) {
+        tile.effects[key] = null;
+      } else {
+        tile.effects = { player: null, enemy: null, environment: null };
+      }
+    } else {
+      tile.effects[key] = {
+        status,
+        duration: defaultDuration
+      };
+    }
+
+    this.syncTileTopState(tile);
     return true;
   }
 
-  // Queue a telegraphed activation
+  // Queue a telegraphed activation per owner
   telegraphTile(x, y, targetStatus, delay, owner = 'player', onTrigger = null) {
     const tile = this.getTile(x, y);
     if (!tile) return;
 
-    tile.telegraph = {
+    const tObj = {
       active: true,
       timer: delay,
       totalDuration: delay,
@@ -101,56 +129,98 @@ export class PagodaGrid {
       owner,
       onTrigger
     };
+
+    const key = owner === 'enemy' ? 'enemy' : 'player';
+    tile.telegraphs[key] = tObj;
+
+    // Legacy sync (enemy takes visual precedence)
+    if (tile.telegraphs.enemy) {
+      tile.telegraph = tile.telegraphs.enemy;
+    } else {
+      tile.telegraph = tile.telegraphs.player;
+    }
   }
 
-  cancelTelegraph(x, y) {
+  cancelTelegraph(x, y, owner = null) {
     const tile = this.getTile(x, y);
     if (!tile) return;
-    tile.telegraph.active = false;
-    tile.telegraph.timer = 0;
+    if (owner && tile.telegraphs[owner]) {
+      tile.telegraphs[owner].active = false;
+      tile.telegraphs[owner] = null;
+    } else {
+      tile.telegraphs.player = null;
+      tile.telegraphs.enemy = null;
+      tile.telegraph.active = false;
+    }
   }
 
   isWalkable(x, y, isWraith = false) {
     if (!this.isInBounds(x, y)) return false;
     const tile = this.tiles[y][x];
-    if (tile.status === TILE_STATUS.INACCESSIBLE && !isWraith) {
-      return false;
-    }
+    if (isWraith) return true;
+    if (tile.effects.environment && tile.effects.environment.status === TILE_STATUS.INACCESSIBLE) return false;
+    if (tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.INACCESSIBLE) return false;
+    if (tile.effects.player && tile.effects.player.status === TILE_STATUS.INACCESSIBLE) return false;
     return true;
   }
 
   isDamaging(x, y) {
     const tile = this.getTile(x, y);
-    return tile && tile.status === TILE_STATUS.DAMAGING;
+    if (!tile) return false;
+    return (tile.effects.player && tile.effects.player.status === TILE_STATUS.DAMAGING) ||
+           (tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.DAMAGING);
   }
 
-  // Prevents self-damage: Player only takes damage from enemy tiles, enemies only from player tiles
+  // Prevents friendly fire:
+  // Player is ONLY damaged by enemy damaging tiles!
+  // Enemies are ONLY damaged by player damaging tiles!
   isDamagingTo(x, y, targetType = 'player') {
     const tile = this.getTile(x, y);
-    if (!tile || tile.status !== TILE_STATUS.DAMAGING) return false;
+    if (!tile) return false;
     if (targetType === 'player') {
-      return tile.owner === 'enemy';
+      return Boolean(tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.DAMAGING);
     }
     if (targetType === 'enemy') {
-      return tile.owner === 'player';
+      return Boolean(tile.effects.player && tile.effects.player.status === TILE_STATUS.DAMAGING);
     }
-    return true;
+    return false;
   }
 
   isShielded(x, y) {
     const tile = this.getTile(x, y);
-    return tile && tile.status === TILE_STATUS.SHIELDED;
+    return Boolean(tile && tile.effects.player && tile.effects.player.status === TILE_STATUS.SHIELDED);
   }
 
   breakShield(x, y) {
     const tile = this.getTile(x, y);
-    if (tile && tile.status === TILE_STATUS.SHIELDED) {
-      tile.status = TILE_STATUS.NORMAL;
-      tile.duration = 0;
+    if (tile && tile.effects.player && tile.effects.player.status === TILE_STATUS.SHIELDED) {
+      tile.effects.player = null;
+      this.syncTileTopState(tile);
       horrorAudio.playShieldBreak();
       return true;
     }
     return false;
+  }
+
+  syncTileTopState(tile) {
+    // Enemy effects take top priority in reporting, then player, then environment
+    if (tile.effects.enemy) {
+      tile.status = tile.effects.enemy.status;
+      tile.owner = 'enemy';
+      tile.duration = tile.effects.enemy.duration;
+    } else if (tile.effects.player) {
+      tile.status = tile.effects.player.status;
+      tile.owner = 'player';
+      tile.duration = tile.effects.player.duration;
+    } else if (tile.effects.environment) {
+      tile.status = tile.effects.environment.status;
+      tile.owner = 'environment';
+      tile.duration = tile.effects.environment.duration;
+    } else {
+      tile.status = TILE_STATUS.NORMAL;
+      tile.owner = null;
+      tile.duration = 0;
+    }
   }
 
   update(dt) {
@@ -158,26 +228,42 @@ export class PagodaGrid {
       for (let x = 0; x < this.cols; x++) {
         const tile = this.tiles[y][x];
 
-        // 1. Update Telegraph
-        if (tile.telegraph.active) {
-          tile.telegraph.timer -= dt;
-          if (tile.telegraph.timer <= 0) {
-            tile.telegraph.active = false;
-            // Activate target status
-            this.setTileStatus(x, y, tile.telegraph.targetStatus, null, tile.telegraph.owner);
-            if (tile.telegraph.onTrigger) {
-              tile.telegraph.onTrigger(x, y, tile.telegraph.targetStatus);
+        // 1. Update Telegraphs for both player and enemy
+        ['player', 'enemy'].forEach(ownerKey => {
+          const t = tile.telegraphs[ownerKey];
+          if (t && t.active) {
+            t.timer -= dt;
+            if (t.timer <= 0) {
+              t.active = false;
+              tile.telegraphs[ownerKey] = null;
+              this.setTileStatus(x, y, t.targetStatus, null, ownerKey);
+              if (t.onTrigger) {
+                t.onTrigger(x, y, t.targetStatus);
+              }
             }
           }
-        }
+        });
 
-        // 2. Update Active Status duration decay
-        if (tile.status !== TILE_STATUS.NORMAL) {
-          tile.duration -= dt;
-          if (tile.duration <= 0) {
-            tile.status = TILE_STATUS.NORMAL;
-            tile.owner = null;
+        // 2. Update Active Effects duration decay
+        ['player', 'enemy'].forEach(key => {
+          const eff = tile.effects[key];
+          if (eff) {
+            eff.duration -= dt;
+            if (eff.duration <= 0) {
+              tile.effects[key] = null;
+            }
           }
+        });
+
+        this.syncTileTopState(tile);
+
+        // Legacy telegraph sync (enemy takes priority)
+        if (tile.telegraphs.enemy && tile.telegraphs.enemy.active) {
+          tile.telegraph = tile.telegraphs.enemy;
+        } else if (tile.telegraphs.player && tile.telegraphs.player.active) {
+          tile.telegraph = tile.telegraphs.player;
+        } else {
+          tile.telegraph = { active: false, timer: 0, totalDuration: 0, targetStatus: TILE_STATUS.NORMAL, owner: null };
         }
       }
     }

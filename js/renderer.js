@@ -203,31 +203,8 @@ export class PagodaRenderer {
         const tile = this.grid.tiles[y][x];
         const p = this.grid.gridToPixel(x, y);
 
-        // Damaging Status: Blood Spikes & Crimson Yin Flames
-        if (tile.status === TILE_STATUS.DAMAGING) {
-          const pulse = (Math.sin(now * 8) + 1) * 0.15;
-          ctx.fillStyle = `rgba(193, 18, 31, ${0.45 + pulse})`;
-          ctx.fillRect(p.x + 2, p.y + 2, ts - 4, ts - 4);
-
-          ctx.strokeStyle = '#ff334b';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(p.x + 2, p.y + 2, ts - 4, ts - 4);
-
-          // Blood thorns
-          ctx.fillStyle = '#ff7b89';
-          for (let i = 0; i < 4; i++) {
-            const bx = p.x + 15 + i * 14;
-            const by = p.y + ts - 10;
-            ctx.beginPath();
-            ctx.moveTo(bx, by);
-            ctx.lineTo(bx + 4, by - 16);
-            ctx.lineTo(bx + 8, by);
-            ctx.fill();
-          }
-        }
-
-        // Shielded Status: Cyan Taoist Ward
-        if (tile.status === TILE_STATUS.SHIELDED) {
+        // 1. Shielded Status: Cyan Taoist Ward
+        if (tile.effects.player && tile.effects.player.status === TILE_STATUS.SHIELDED) {
           const pulse = (Math.sin(now * 5) + 1) * 0.2;
           ctx.fillStyle = `rgba(0, 240, 255, ${0.25 + pulse})`;
           ctx.fillRect(p.x + 2, p.y + 2, ts - 4, ts - 4);
@@ -242,6 +219,62 @@ export class PagodaRenderer {
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
           ctx.stroke();
         }
+
+        // 2. Player-Made Damaging Status: Jade Green Qi Spikes (SAFE for Player, Deadly for Enemies)
+        const hasPlayerDmg = tile.effects.player && tile.effects.player.status === TILE_STATUS.DAMAGING;
+        if (hasPlayerDmg) {
+          const pulse = (Math.sin(now * 7) + 1) * 0.15;
+          ctx.fillStyle = `rgba(16, 185, 129, ${0.45 + pulse})`;
+          ctx.fillRect(p.x + 2, p.y + 2, ts - 4, ts - 4);
+
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(p.x + 2, p.y + 2, ts - 4, ts - 4);
+
+          // Green Jade Qi Thorns
+          ctx.fillStyle = '#6ee7b7';
+          for (let i = 0; i < 4; i++) {
+            const bx = p.x + 15 + i * 14;
+            const by = p.y + ts - 10;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(bx + 4, by - 16);
+            ctx.lineTo(bx + 8, by);
+            ctx.fill();
+          }
+        }
+
+        // 3. Enemy Damaging Status: Crimson Blood Spikes (ALWAYS ON TOP if stacked with player tile!)
+        const hasEnemyDmg = tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.DAMAGING;
+        if (hasEnemyDmg) {
+          const pulse = (Math.sin(now * 9) + 1) * 0.18;
+          ctx.fillStyle = `rgba(193, 18, 31, ${0.65 + pulse})`;
+          ctx.fillRect(p.x + 2, p.y + 2, ts - 4, ts - 4);
+
+          ctx.strokeStyle = '#ff334b';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(p.x + 2, p.y + 2, ts - 4, ts - 4);
+
+          // Crimson Blood Thorns
+          ctx.fillStyle = '#ff7b89';
+          for (let i = 0; i < 4; i++) {
+            const bx = p.x + 15 + i * 14;
+            const by = p.y + ts - 10;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(bx + 4, by - 16);
+            ctx.lineTo(bx + 8, by);
+            ctx.fill();
+          }
+
+          // Visual warning skull if stacked over player's green tile
+          if (hasPlayerDmg) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('⚠️', p.x + ts * 0.5, p.y + 14);
+          }
+        }
       }
     }
   }
@@ -251,37 +284,52 @@ export class PagodaRenderer {
     for (let y = 0; y < this.grid.rows; y++) {
       for (let x = 0; x < this.grid.cols; x++) {
         const tile = this.grid.tiles[y][x];
-        if (tile.telegraph && tile.telegraph.active) {
-          const p = this.grid.gridToPixel(x, y);
-          const t = tile.telegraph;
-          const ratio = Math.min(1, Math.max(0, 1 - (t.timer / t.totalDuration)));
-          const isEnemy = t.owner === 'enemy';
+        const p = this.grid.gridToPixel(x, y);
 
-          // Color scheme
-          const mainColor = isEnemy ? 'rgba(255, 51, 75, 0.5)' : 'rgba(0, 240, 255, 0.4)';
-          const strokeColor = isEnemy ? '#ff334b' : '#00f0ff';
-
-          // Expanding fill box
-          ctx.fillStyle = mainColor;
+        // 1. Draw Player Telegraph (Green/Cyan) underneath
+        const pt = tile.telegraphs.player;
+        if (pt && pt.active) {
+          const ratio = Math.min(1, Math.max(0, 1 - (pt.timer / pt.totalDuration)));
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.4)';
           ctx.fillRect(p.x + 4, p.y + 4, ts - 8, ts - 8);
 
-          // Pulsing warning outline
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2;
           ctx.strokeRect(p.x + 4, p.y + 4, ts - 8, ts - 8);
 
-          // Center countdown circle
           ctx.beginPath();
           ctx.arc(p.x + ts * 0.5, p.y + ts * 0.5, (ts * 0.35) * ratio, 0, Math.PI * 2);
-          ctx.fillStyle = strokeColor;
+          ctx.fillStyle = '#10b981';
           ctx.fill();
 
-          // Countdown number
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 11px JetBrains Mono';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(t.timer.toFixed(1) + 's', p.x + ts * 0.5, p.y + ts * 0.5);
+          ctx.fillText(pt.timer.toFixed(1) + 's', p.x + ts * 0.5, p.y + ts * 0.5);
+        }
+
+        // 2. Draw Enemy Telegraph (Crimson Blood) ON TOP of player telegraph!
+        const et = tile.telegraphs.enemy;
+        if (et && et.active) {
+          const ratio = Math.min(1, Math.max(0, 1 - (et.timer / et.totalDuration)));
+          ctx.fillStyle = 'rgba(255, 51, 75, 0.6)';
+          ctx.fillRect(p.x + 4, p.y + 4, ts - 8, ts - 8);
+
+          ctx.strokeStyle = '#ff334b';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(p.x + 4, p.y + 4, ts - 8, ts - 8);
+
+          ctx.beginPath();
+          ctx.arc(p.x + ts * 0.5, p.y + ts * 0.5, (ts * 0.35) * ratio, 0, Math.PI * 2);
+          ctx.fillStyle = '#ff334b';
+          ctx.fill();
+
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 11px JetBrains Mono';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(et.timer.toFixed(1) + 's', p.x + ts * 0.5, p.y + ts * 0.5);
         }
       }
     }

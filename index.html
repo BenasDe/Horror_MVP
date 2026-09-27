@@ -38,7 +38,7 @@
 
         <div class="stat-group">
           <span class="hud-label">AGILITY</span>
-          <span id="agility-display" class="hud-value">250 ms / step</span>
+          <span id="agility-display" class="hud-value">190 ms / step</span>
         </div>
 
         <div class="stat-group marrow-group">
@@ -165,46 +165,61 @@
           </div>
         </div>
 
-        <!-- Altar Tabs / Sections -->
-        <div class="font-sections">
-          <!-- Stat Refinements -->
-          <div class="font-section">
-            <h3 class="section-title">CORPSE MARROW REFINEMENT (STATS)</h3>
-            <div class="upgrades-list">
-              <div class="upgrade-card" id="upg-health">
-                <div class="upgrade-info">
-                  <div class="upgrade-name">Bone Weaving (Health)</div>
-                  <div class="upgrade-detail">Increase maximum hits by +1 (Survive more impacts).</div>
-                  <div class="current-stat" id="stat-curr-hp">Current: 1 Hit</div>
-                </div>
-                <button class="buy-btn" id="btn-buy-hp">Refine (40 Marrow)</button>
-              </div>
-
-              <div class="upgrade-card" id="upg-agility">
-                <div class="upgrade-info">
-                  <div class="upgrade-name">Wind-Stepping Soul (Agility)</div>
-                  <div class="upgrade-detail">Reduces real-time tile transition cooldown by 25ms.</div>
-                  <div class="current-stat" id="stat-curr-agi">Current: 250ms / step</div>
-                </div>
-                <button class="buy-btn" id="btn-buy-agi">Refine (25 Marrow)</button>
-              </div>
-
-              <div class="upgrade-card" id="upg-stamina">
-                <div class="upgrade-info">
-                  <div class="upgrade-name">Meridian Cleansing (Stamina)</div>
-                  <div class="upgrade-detail">Increase maximum spell casts per floor by +2 charges.</div>
-                  <div class="current-stat" id="stat-curr-stam">Current: 4 Casts</div>
-                </div>
-                <button class="buy-btn" id="btn-buy-stam">Refine (20 Marrow)</button>
-              </div>
+        <!-- Font Shop Body with Vampire Shopkeeper on the Left -->
+        <div class="font-body-layout">
+          <!-- Young Lady Vampire Shopkeeper -->
+          <div class="keeper-sidebar">
+            <div class="keeper-frame">
+              <img src="assets/vampire_keeper.jpg" alt="Lady Xiao Yin - Vampire Shopkeeper" class="keeper-img">
+            </div>
+            <div class="keeper-name text-crimson">Lady Xiao Yin</div>
+            <div class="keeper-title text-gold">🩸 Marrow Alchemist</div>
+            <div class="keeper-quote">
+              "Still clinging to your fragile cultivator soul? Offer your harvested marrow... Let me weave your bones and draft forbidden talismans for the pagoda summit."
             </div>
           </div>
 
-          <!-- Demonic Talisman Drafts -->
-          <div class="font-section">
-            <h3 class="section-title">FORGE DEMONIC TALISMANS (SPELL DRAFTS)</h3>
-            <div id="draft-spells-container" class="draft-cards-grid">
-              <!-- Generated dynamically -->
+          <!-- Altar Tabs / Sections (Choices on Right) -->
+          <div class="font-sections">
+            <!-- Stat Refinements -->
+            <div class="font-section">
+              <h3 class="section-title">CORPSE MARROW REFINEMENT (STATS)</h3>
+              <div class="upgrades-list">
+                <div class="upgrade-card" id="upg-health">
+                  <div class="upgrade-info">
+                    <div class="upgrade-name">Bone Weaving (Health)</div>
+                    <div class="upgrade-detail">Increase maximum hits by +1 (Survive more impacts).</div>
+                    <div class="current-stat" id="stat-curr-hp">Current: 1 Hit</div>
+                  </div>
+                  <button class="buy-btn" id="btn-buy-hp">Refine (40 Marrow)</button>
+                </div>
+
+                <div class="upgrade-card" id="upg-agility">
+                  <div class="upgrade-info">
+                    <div class="upgrade-name">Wind-Stepping Soul (Agility)</div>
+                    <div class="upgrade-detail">Reduces real-time tile transition cooldown by 25ms.</div>
+                    <div class="current-stat" id="stat-curr-agi">Current: 275ms / step</div>
+                  </div>
+                  <button class="buy-btn" id="btn-buy-agi">Refine (25 Marrow)</button>
+                </div>
+
+                <div class="upgrade-card" id="upg-stamina">
+                  <div class="upgrade-info">
+                    <div class="upgrade-name">Meridian Cleansing (Stamina)</div>
+                    <div class="upgrade-detail">Increase maximum spell casts per floor by +2 charges.</div>
+                    <div class="current-stat" id="stat-curr-stam">Current: 4 Casts</div>
+                  </div>
+                  <button class="buy-btn" id="btn-buy-stam">Refine (20 Marrow)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Demonic Talisman Drafts -->
+            <div class="font-section">
+              <h3 class="section-title">FORGE DEMONIC TALISMANS (SPELL DRAFTS)</h3>
+              <div id="draft-spells-container" class="draft-cards-grid">
+                <!-- Generated dynamically -->
+              </div>
             </div>
           </div>
         </div>
@@ -224,8 +239,12 @@
           <div>Floors Breached: <span id="go-floors" class="text-gold">1</span> / 26</div>
           <div>Jiangshi Slain: <span id="go-kills" class="text-gold">0</span></div>
           <div>Marrow Harvested: <span id="go-marrow" class="text-gold">0</span></div>
+          <div>Last Checkpoint: <span id="go-checkpoint" class="text-cyan">Floor 1</span></div>
         </div>
-        <button id="btn-restart" class="gothic-btn pulse-glow">REVIVE AT FLOOR 1</button>
+        <div class="gameover-actions">
+          <button id="btn-restart" class="gothic-btn pulse-glow">REVIVE AT CHECKPOINT</button>
+          <button id="btn-restart-floor1" class="gothic-btn restart-fresh-btn hidden">START FRESH (FLOOR 1)</button>
+        </div>
       </div>
     </div>
 

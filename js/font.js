@@ -97,6 +97,11 @@ export class MarrowFontManager {
 
     // Render Draft Cards
     this.renderDraftCards();
+
+    // Auto-save checkpoint state at font
+    if (window.game && window.game.saveCheckpoint) {
+      window.game.saveCheckpoint(window.game.currentFloor);
+    }
   }
 
   renderDraftCards() {

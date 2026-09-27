@@ -4,10 +4,10 @@
  */
 
 export const GRID_CONFIG = {
-  COLS: 10,
-  ROWS: 10,
-  TILE_SIZE: 70, // 70x70 px per tile inside 760x760 canvas with 30px padding
-  PADDING: 30
+  COLS: 9,
+  ROWS: 9,
+  TILE_SIZE: 76, // 76x76 px per tile (9 * 76 + 2 * 38 = 760px canvas)
+  PADDING: 38
 };
 
 export const TILE_STATUS = {
@@ -25,7 +25,7 @@ export const TILE_DURATIONS = {
 
 export const INITIAL_PLAYER_STATS = {
   MAX_HITS: 1,       // 1 hit death at start
-  AGILITY: 250,      // ms per tile movement
+  AGILITY: 275,      // ms per tile movement (slower deliberate player movement)
   MAX_STAMINA: 4,    // Spell casts per floor
   MARROW: 0
 };
@@ -85,17 +85,6 @@ export const SPELL_CATALOG = {
     range: 1,
     desc: 'Purifying ward: Shields your current tile and 4 adjacent cardinal tiles.',
     cost: 25
-  },
-  BONE_BASTION: {
-    id: 'bone_bastion',
-    name: 'Bone Bastion',
-    icon: '🧱',
-    pattern: 'cross_wall',
-    effect: TILE_STATUS.INACCESSIBLE,
-    baseDelay: 0.55,
-    range: 1,
-    desc: 'Erects impassable bone pillars on 4 cardinal tiles around target to block fiends.',
-    cost: 20
   },
   QUEEN_RUIN: {
     id: 'queen_ruin',

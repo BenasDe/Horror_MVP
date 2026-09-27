@@ -3,7 +3,7 @@
  * Master Game Loop, Input Controller, and Floor State Machine
  */
 
-import { FLOORS_CONFIG } from './config.js';
+import { FLOORS_CONFIG, INITIAL_PLAYER_STATS, TILE_STATUS } from './config.js';
 import { horrorAudio } from './audio.js';
 import { PagodaGrid } from './grid.js';
 import { Player } from './player.js';
@@ -21,6 +21,8 @@ class DemonicPagodaGame {
     this.spellEngine = new SpellEngine(this.grid);
 
     this.currentFloor = 1;
+    this.lastCheckpointFloor = 1;
+    this.savedCheckpointState = null;
     this.gameState = 'TITLE'; // 'TITLE', 'PLAYING', 'SAFE_FONT', 'GAME_OVER', 'VICTORY'
     this.enemies = [];
     this.totalKills = 0;
@@ -62,6 +64,9 @@ class DemonicPagodaGame {
     this.castTimerText = document.getElementById('cast-timer-text');
     this.combatBanner = document.getElementById('combat-banner');
 
+    this.btnRestart = document.getElementById('btn-restart');
+    this.btnRestartFloor1 = document.getElementById('btn-restart-floor1');
+
     // Title Start Button
     document.getElementById('btn-start-game').addEventListener('click', () => {
       horrorAudio.ensureContext();
@@ -69,10 +74,14 @@ class DemonicPagodaGame {
       this.startGame();
     });
 
-    // Restart Button
-    document.getElementById('btn-restart').addEventListener('click', () => {
-      this.gameOverModal.classList.add('hidden');
-      this.startGame();
+    // Checkpoint Restart Button
+    this.btnRestart.addEventListener('click', () => {
+      this.reviveAtCheckpoint();
+    });
+
+    // Start Fresh from Floor 1 Button
+    this.btnRestartFloor1.addEventListener('click', () => {
+      this.restartFromFloor1();
     });
 
     // Play Again Button
@@ -140,12 +149,12 @@ class DemonicPagodaGame {
   startGame() {
     this.currentFloor = 1;
     this.totalKills = 0;
-    this.player.maxHits = 1;
-    this.player.currentHits = 1;
-    this.player.agility = 250;
-    this.player.maxStamina = 4;
-    this.player.currentStamina = 4;
-    this.player.marrow = 0;
+    this.player.maxHits = INITIAL_PLAYER_STATS.MAX_HITS;
+    this.player.currentHits = INITIAL_PLAYER_STATS.MAX_HITS;
+    this.player.setAgility(INITIAL_PLAYER_STATS.AGILITY);
+    this.player.maxStamina = INITIAL_PLAYER_STATS.MAX_STAMINA;
+    this.player.currentStamina = INITIAL_PLAYER_STATS.MAX_STAMINA;
+    this.player.marrow = INITIAL_PLAYER_STATS.MARROW;
     this.spellEngine.reset();
     this.fontManager.upgradeCosts = { health: 40, agility: 25, stamina: 20 };
 
@@ -161,16 +170,99 @@ class DemonicPagodaGame {
     if (FLOORS_CONFIG.SAFE_FLOORS.includes(floorNum)) {
       this.gameState = 'SAFE_FONT';
       this.enemies = [];
+      this.saveCheckpoint(floorNum);
       this.updateHUD();
       this.fontManager.open(floorNum);
+      this.showCombatBanner(`SANCTUARY REACHED • CHECKPOINT SAVED (FLOOR ${floorNum})`, 2.5);
       return;
     }
 
     this.gameState = 'PLAYING';
     horrorAudio.playGong(floorNum === 26);
+    this.generateMapObstacles(floorNum);
     this.spawnFloorEnemies(floorNum);
     this.updateHUD();
     this.showCombatBanner(`FLOOR ${floorNum} - PURGE ALL CORPSES`);
+  }
+
+  generateMapObstacles(floorNum) {
+    if (floorNum === 26) {
+      // Boss floor: fixed corner pillars, leaving center and havens open
+      const bossPillars = [
+        [0, 0], [8, 0], [0, 8], [8, 8],
+        [2, 3], [6, 3], [2, 6], [6, 6]
+      ];
+      bossPillars.forEach(([ox, oy]) => {
+        this.grid.setTileStatus(ox, oy, TILE_STATUS.INACCESSIBLE, 99999, 'environment');
+      });
+      return;
+    }
+
+    // Number of random obstacles on 9x9 grid: 6 to 12
+    const obstacleCount = Math.min(12, 5 + Math.floor(floorNum / 3));
+    const reservedTiles = [
+      // Player start and immediate mobility radius
+      '4,8', '4,7', '3,8', '5,8', '4,6', '3,7', '5,7'
+    ];
+
+    let placed = 0;
+    let attempts = 0;
+
+    // Thematic chess / horror obstacle patterns
+    const patternType = floorNum % 4;
+
+    if (patternType === 0) {
+      // Symmetric Monoliths
+      const monoliths = [
+        [2, 2], [6, 2], [2, 5], [6, 5],
+        [4, 3], [1, 4], [7, 4]
+      ];
+      monoliths.forEach(([ox, oy]) => {
+        if (!reservedTiles.includes(`${ox},${oy}`) && this.grid.isInBounds(ox, oy)) {
+          this.grid.setTileStatus(ox, oy, TILE_STATUS.INACCESSIBLE, 99999, 'environment');
+          placed++;
+        }
+      });
+    } else if (patternType === 1) {
+      // Broken Crossroad Walls
+      const walls = [
+        [1, 2], [2, 2], [6, 2], [7, 2],
+        [3, 4], [4, 4], [5, 4],
+        [2, 6], [6, 6]
+      ];
+      walls.forEach(([ox, oy]) => {
+        if (!reservedTiles.includes(`${ox},${oy}`) && this.grid.isInBounds(ox, oy)) {
+          this.grid.setTileStatus(ox, oy, TILE_STATUS.INACCESSIBLE, 99999, 'environment');
+          placed++;
+        }
+      });
+    } else if (patternType === 2) {
+      // Knight Bastions (L-shapes)
+      const lShapes = [
+        [2, 1], [2, 2], [3, 2],
+        [6, 1], [6, 2], [5, 2],
+        [1, 5], [2, 5], [2, 6],
+        [7, 5], [6, 5], [6, 6]
+      ];
+      lShapes.forEach(([ox, oy]) => {
+        if (!reservedTiles.includes(`${ox},${oy}`) && this.grid.isInBounds(ox, oy)) {
+          this.grid.setTileStatus(ox, oy, TILE_STATUS.INACCESSIBLE, 99999, 'environment');
+          placed++;
+        }
+      });
+    } else {
+      // Scattered Pagoda Bone Ruins
+      while (placed < obstacleCount && attempts < 100) {
+        attempts++;
+        const ox = Math.floor(Math.random() * this.grid.cols);
+        const oy = Math.floor(Math.random() * (this.grid.rows - 2)); // don't spawn on bottom 2 rows
+        const key = `${ox},${oy}`;
+        if (!reservedTiles.includes(key) && this.grid.isWalkable(ox, oy)) {
+          this.grid.setTileStatus(ox, oy, TILE_STATUS.INACCESSIBLE, 99999, 'environment');
+          placed++;
+        }
+      }
+    }
   }
 
   spawnFloorEnemies(floorNum) {
@@ -187,8 +279,14 @@ class DemonicPagodaGame {
     const enemyCount = Math.min(8, 2 + Math.floor(floorNum / 3.5));
 
     for (let i = 0; i < enemyCount; i++) {
-      let ex = Math.floor(Math.random() * this.grid.cols);
-      let ey = Math.floor(Math.random() * 5); // spawn on top half
+      let ex = 0;
+      let ey = 0;
+      let attempts = 0;
+      do {
+        ex = Math.floor(Math.random() * this.grid.cols);
+        ey = Math.floor(Math.random() * 5); // spawn on top half
+        attempts++;
+      } while (!this.grid.isWalkable(ex, ey) && attempts < 50);
 
       // Determine enemy type based on floor tier
       let enemy;
@@ -264,13 +362,67 @@ class DemonicPagodaGame {
     }
   }
 
+  saveCheckpoint(floorNum) {
+    this.lastCheckpointFloor = floorNum;
+    this.savedCheckpointState = {
+      floor: floorNum,
+      maxHits: this.player.maxHits,
+      agility: this.player.agility,
+      maxStamina: this.player.maxStamina,
+      marrow: this.player.marrow,
+      totalKills: this.totalKills,
+      spells: this.spellEngine.equippedSpells.map(s => s ? { ...s } : null),
+      upgradeCosts: { ...this.fontManager.upgradeCosts }
+    };
+  }
+
   handleGameOver(source) {
     this.gameState = 'GAME_OVER';
     horrorAudio.playDamageTaken();
     document.getElementById('go-floors').textContent = this.currentFloor;
     document.getElementById('go-kills').textContent = this.totalKills;
     document.getElementById('go-marrow').textContent = this.player.marrow;
+
+    const cpText = this.lastCheckpointFloor > 1 ? `Floor ${this.lastCheckpointFloor} (Marrow Font)` : 'Floor 1';
+    document.getElementById('go-checkpoint').textContent = cpText;
+
+    if (this.lastCheckpointFloor > 1) {
+      this.btnRestart.textContent = `REVIVE AT CHECKPOINT (FLOOR ${this.lastCheckpointFloor})`;
+      this.btnRestartFloor1.classList.remove('hidden');
+    } else {
+      this.btnRestart.textContent = 'REVIVE AT FLOOR 1';
+      this.btnRestartFloor1.classList.add('hidden');
+    }
+
     this.gameOverModal.classList.remove('hidden');
+  }
+
+  reviveAtCheckpoint() {
+    this.gameOverModal.classList.add('hidden');
+    if (this.savedCheckpointState && this.lastCheckpointFloor > 1) {
+      // Restore player from checkpoint snapshot
+      this.player.maxHits = this.savedCheckpointState.maxHits;
+      this.player.currentHits = this.savedCheckpointState.maxHits;
+      this.player.setAgility(this.savedCheckpointState.agility);
+      this.player.maxStamina = this.savedCheckpointState.maxStamina;
+      this.player.currentStamina = this.savedCheckpointState.maxStamina;
+      this.player.marrow = this.savedCheckpointState.marrow;
+      this.totalKills = this.savedCheckpointState.totalKills;
+      this.fontManager.upgradeCosts = { ...this.savedCheckpointState.upgradeCosts };
+      this.spellEngine.equippedSpells = this.savedCheckpointState.spells.map(s => s ? { ...s } : null);
+
+      this.currentFloor = this.lastCheckpointFloor;
+      this.startFloor(this.currentFloor);
+    } else {
+      this.startGame();
+    }
+  }
+
+  restartFromFloor1() {
+    this.gameOverModal.classList.add('hidden');
+    this.lastCheckpointFloor = 1;
+    this.savedCheckpointState = null;
+    this.startGame();
   }
 
   handleVictory() {
