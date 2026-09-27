@@ -1,0 +1,442 @@
+/* =========================================================
+   THE BLOOD MARROW PAGODA: RESPONSIVE & MOBILE TOUCH STYLES
+   ========================================================= */
+
+/* Mobile Virtual D-Pad Overlay */
+.mobile-dpad {
+  display: none;
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  z-index: 20;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: rgba(14, 11, 20, 0.72);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(193, 18, 31, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  touch-action: none;
+  user-select: none;
+}
+
+.dpad-row {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.dpad-center {
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle, rgba(193, 18, 31, 0.25) 0%, transparent 70%);
+  border-radius: 6px;
+}
+
+.dpad-btn {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(180deg, #251c2e 0%, #120e18 100%);
+  border: 1px solid #4a3654;
+  border-radius: 8px;
+  color: var(--bone-white);
+  font-size: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.dpad-btn:active, .dpad-btn.active {
+  background: linear-gradient(180deg, #c1121f 0%, #5a0004 100%);
+  border-color: var(--crimson-bright);
+  box-shadow: 0 0 14px rgba(255, 51, 75, 0.85);
+  transform: scale(0.92);
+}
+
+/* =========================================================
+   MEDIA QUERIES: SMARTPHONES & TOUCHSCREENS
+   ========================================================= */
+
+@media (max-width: 768px), (pointer: coarse) {
+  #game-wrapper {
+    border: none;
+    box-shadow: none;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  /* Compact Top HUD */
+  #hud-top {
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .floor-panel {
+    min-width: auto;
+    flex: 1 1 auto;
+  }
+
+  .hud-label {
+    font-size: 8px;
+    letter-spacing: 1px;
+    margin-bottom: 1px;
+  }
+
+  .hud-value {
+    font-size: 13px;
+  }
+
+  .hud-subtitle {
+    font-size: 9px;
+  }
+
+  .stats-panel {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .stat-group {
+    align-items: flex-end;
+  }
+
+  .soul-bead {
+    width: 16px;
+    height: 16px;
+  }
+
+  .stamina-pip {
+    width: 6px;
+    height: 10px;
+  }
+
+  /* Show Mobile D-Pad */
+  .mobile-dpad {
+    display: flex !important;
+  }
+
+  /* Compact Bottom Spell Hotbar */
+  #hud-bottom {
+    padding: 6px 8px 4px 8px;
+  }
+
+  .spell-slots-container {
+    gap: 5px;
+    margin-bottom: 2px;
+  }
+
+  .spell-slot {
+    padding: 4px 2px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+  }
+
+  .keybind-tag {
+    font-size: 7.5px;
+    top: 1px;
+    right: 2px;
+    left: auto;
+    padding: 0 3px;
+  }
+
+  .spell-pattern-icon {
+    font-size: 17px;
+    min-width: auto;
+    line-height: 1;
+  }
+
+  .spell-info {
+    width: 100%;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .spell-title {
+    font-size: 9px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .spell-meta {
+    flex-direction: column;
+    gap: 1px;
+    align-items: center;
+  }
+
+  .pattern-badge, .delay-badge {
+    font-size: 7px;
+    padding: 0 2px;
+  }
+
+  .spell-desc {
+    display: none !important;
+  }
+
+  .controls-hint {
+    font-size: 9px;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .desktop-hint {
+    display: none !important;
+  }
+
+  .mobile-hint {
+    display: inline !important;
+  }
+
+  /* Channeling overlay */
+  #cast-bar-container {
+    top: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    width: min(340px, 94%);
+  }
+
+  .root-warning {
+    font-size: 10px;
+  }
+
+  /* Modals Responsive */
+  .modal-content.gothic-box {
+    padding: 14px;
+    width: 95%;
+    max-height: 94vh;
+  }
+
+  .title-box .pagoda-title {
+    font-size: 20px;
+    letter-spacing: 1.5px;
+  }
+
+  .title-box .pagoda-subtitle {
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .lore-text {
+    font-size: 11px;
+    line-height: 1.45;
+    padding: 10px;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .gothic-btn {
+    font-size: 13px;
+    padding: 10px 18px;
+  }
+
+  /* Font Sanctuary Modal */
+  #font-modal .font-box {
+    padding: 12px;
+  }
+
+  .font-title {
+    font-size: 18px;
+  }
+
+  .font-flavor {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .font-perks {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .badge-restored {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .marrow-font-balance {
+    font-size: 12px;
+  }
+
+  .font-body-layout {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .keeper-sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .keeper-frame {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .keeper-name {
+    font-size: 13px;
+  }
+
+  .keeper-title {
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+
+  .keeper-quote {
+    font-size: 9px;
+    line-height: 1.35;
+    padding-top: 2px;
+    border-top: none;
+  }
+
+  .font-sections {
+    gap: 12px;
+  }
+
+  .font-section .section-title {
+    font-size: 10.5px;
+    margin-bottom: 6px;
+  }
+
+  .upgrades-list {
+    gap: 6px;
+  }
+
+  .upgrade-card {
+    padding: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .upgrade-name {
+    font-size: 11px;
+  }
+
+  .upgrade-detail {
+    font-size: 9.5px;
+  }
+
+  .current-stat {
+    font-size: 9px;
+  }
+
+  .upgrade-card .buy-btn {
+    width: 100%;
+    padding: 7px;
+    font-size: 10.5px;
+    text-align: center;
+  }
+
+  .draft-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .draft-card {
+    padding: 8px;
+  }
+
+  .draft-title {
+    font-size: 11px;
+  }
+
+  .draft-desc {
+    font-size: 9px;
+  }
+
+  .font-actions {
+    margin-top: 10px;
+  }
+
+  .font-proceed-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  /* Game Over & Victory */
+  .gameover-title, .victory-title {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .gameover-desc, .victory-desc {
+    font-size: 11.5px;
+    margin-bottom: 14px;
+  }
+
+  .gameover-stats {
+    gap: 10px;
+    font-size: 11px;
+    padding: 8px 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .gameover-actions {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .gameover-actions .gothic-btn {
+    width: 100%;
+    padding: 10px;
+  }
+}
+
+/* Landscape Mode on Small Screens */
+@media (max-height: 550px) and (orientation: landscape) {
+  #hud-top {
+    padding: 3px 12px;
+  }
+
+  #hud-bottom {
+    padding: 3px 10px;
+  }
+
+  .spell-slots-container {
+    margin-bottom: 0;
+  }
+
+  .spell-slot {
+    min-height: 40px;
+    padding: 2px 4px;
+  }
+
+  .spell-pattern-icon {
+    font-size: 15px;
+  }
+
+  .controls-hint {
+    display: none;
+  }
+
+  .mobile-dpad {
+    left: 10px;
+    right: auto;
+    bottom: 6px;
+    transform: scale(0.85);
+    transform-origin: bottom left;
+  }
+}
