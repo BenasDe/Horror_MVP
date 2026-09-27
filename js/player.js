@@ -47,6 +47,9 @@ export class Player {
     this.invulnTimer = 0;
     this.invulnDuration = 1.2; // 1.2s i-frames on hit
 
+    // Queen's Ruin immunity and sacrifice check
+    this.queensRuinCheck = null;
+
     // Callbacks
     this.onHitTaken = null;
     this.onDeath = null;
@@ -67,6 +70,7 @@ export class Player {
     const p = this.grid.gridToPixel(startX, startY);
     this.renderX = p.x;
     this.renderY = p.y;
+    this.queensRuinCheck = null;
     this.cancelCasting();
   }
 
@@ -246,6 +250,37 @@ export class Player {
       this.invulnTimer -= dt;
       if (this.invulnTimer <= 0) {
         this.isInvulnerable = false;
+      }
+    }
+
+    // 4. Queen's Ruin Immunity Expiry & Board Clearance Check
+    if (this.queensRuinCheck) {
+      this.queensRuinCheck.timer -= dt;
+      if (this.queensRuinCheck.timer <= 0) {
+        const qr = this.queensRuinCheck;
+        this.queensRuinCheck = null;
+
+        // Ensure immunity is ended so damage can be applied if necessary
+        this.isInvulnerable = false;
+        this.invulnTimer = 0;
+
+        // Check board status only if still on the same floor and game is currently playing
+        const currentFloor = window.game ? window.game.currentFloor : qr.floor;
+        if (currentFloor === qr.floor && window.game && window.game.gameState === 'PLAYING') {
+          const livingEnemies = qr.enemies.filter(e => e.alive);
+          if (livingEnemies.length > 0) {
+            // Board was not cleared: deduct 1 HP
+            this.takeDamage(true, "Queen's Blood Sacrifice");
+            if (window.game && window.game.renderer) {
+              window.game.renderer.addFloatingText("-1 HP SACRIFICE", this.renderX + 38, this.renderY + 10, '#ff1133', 14);
+            }
+          } else {
+            // Board cleared! No HP loss
+            if (window.game && window.game.showCombatBanner) {
+              window.game.showCombatBanner("BOARD PURGED • SACRIFICE AVERTED!", 2.2);
+            }
+          }
+        }
       }
     }
   }

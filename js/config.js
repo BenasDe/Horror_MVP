@@ -94,7 +94,7 @@ export const SPELL_CATALOG = {
     effect: TILE_STATUS.DAMAGING,
     baseDelay: 3.00, // 3.0 seconds extreme delay
     range: 9,
-    desc: "Board-wide apocalypse (Full Cross + Diagonals). 3s channel root! Siphons 1 Health if enemies survive.",
+    desc: "Board-wide apocalypse (Full Cross + Diagonals). Immune to damage while casting + 2s after. If any enemy survives after immunity ends, siphons 1 Health.",
     isSacrificial: true,
     cost: 50
   }

@@ -147,6 +147,17 @@ export class SpellEngine {
     let delay = spell.baseDelay;
     if (spell.id === 'queen_ruin') {
       delay = 3.00; // Fixed 3.0s extreme root delay for Queen's Ruin
+      // While casting Queen's Ruin, player is immune for casting time (3s) + 2s (5.0s total)
+      caster.isInvulnerable = true;
+      caster.invulnTimer = delay + 2.0;
+      caster.queensRuinCheck = {
+        enemies: enemies,
+        floor: window.game ? window.game.currentFloor : 0,
+        timer: delay + 2.0
+      };
+      if (window.game && window.game.showCombatBanner) {
+        window.game.showCombatBanner("QUEEN'S RUIN: IMMUNE (5.0s) • PURGE ALL CORPSES!", 3.0);
+      }
     }
 
     // Telegraph each target tile on the grid
@@ -162,16 +173,6 @@ export class SpellEngine {
       delay,
       targetTiles,
       onComplete: () => {
-        // Special rule for Queen's Ruin:
-        // Demonic Backlash / Blood Sacrifice: If any living enemies remain alive on the board, caster loses 1 Health!
-        if (spell.id === 'queen_ruin') {
-          setTimeout(() => {
-            const livingEnemies = enemies.filter(e => e.alive);
-            if (livingEnemies.length > 0) {
-              caster.takeDamage(true, "Queen's Blood Sacrifice");
-            }
-          }, 100);
-        }
         if (onComplete) onComplete();
       }
     };
