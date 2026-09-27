@@ -91,18 +91,25 @@ export class ThreePagodaRenderer {
   }
 
   initEnvironment() {
-    // Ambient Light (deep mystic violet)
-    const ambient = new THREE.AmbientLight(0x281938, 0.95);
+    // Ambient Light (deep mystic violet fill)
+    const ambient = new THREE.AmbientLight(0x3e3256, 1.35);
     this.scene.add(ambient);
 
     // Moonlight Directional Light
-    const moon = new THREE.DirectionalLight(0x8fa8cf, 1.1);
+    const moon = new THREE.DirectionalLight(0x9db2d5, 1.25);
     moon.position.set(12, 28, 14);
     moon.castShadow = true;
     moon.shadow.mapSize.width = 1024;
     moon.shadow.mapSize.height = 1024;
     moon.shadow.bias = -0.001;
     this.scene.add(moon);
+
+    // Top-down Zenith Fill Light (directly illuminates tops of character heads, hats, and shoulders)
+    const topLight = new THREE.DirectionalLight(0xfff8ed, 0.75);
+    topLight.position.set(0, 32, 2);
+    topLight.target.position.set(0, 0, 0);
+    this.scene.add(topLight);
+    this.scene.add(topLight.target);
 
     // 4 Corner Altar Braziers with Flickering Fire Lights
     this.brazierLights = [];
@@ -133,8 +140,8 @@ export class ThreePagodaRenderer {
       this.brazierLights.push({ light: pLight, baseIntensity: 1.6 });
     });
 
-    // Player Soul Light (Follows player)
-    this.playerLight = new THREE.PointLight(0x00f0ff, 1.6, 7);
+    // Player Soul Light (Follows player with radiant cyan glow)
+    this.playerLight = new THREE.PointLight(0x00f0ff, 2.2, 8.5);
     this.playerLight.position.set(0, 2.5, 0);
     this.scene.add(this.playerLight);
 
@@ -244,27 +251,71 @@ export class ThreePagodaRenderer {
     // 1. Rogue Cultivator (Player)
     this.playerGroup = new THREE.Group();
 
-    // Robed Body
-    const robeMat = new THREE.MeshStandardMaterial({ color: 0x174052, roughness: 0.6 });
+    // A. Player Ground Tactical Rune Ring (clearly marks current tile & position)
+    const ringGeo = new THREE.RingGeometry(0.55, 0.68, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9
+    });
+    this.playerGroundRing = new THREE.Mesh(ringGeo, ringMat);
+    this.playerGroundRing.rotation.x = -Math.PI * 0.5;
+    this.playerGroundRing.position.y = 0.03;
+    this.playerGroup.add(this.playerGroundRing);
+
+    // Inner glowing aura disc on floor
+    const innerDiscGeo = new THREE.CircleGeometry(0.53, 32);
+    const innerDiscMat = new THREE.MeshBasicMaterial({
+      color: 0x00d4e8,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.25
+    });
+    const innerDisc = new THREE.Mesh(innerDiscGeo, innerDiscMat);
+    innerDisc.rotation.x = -Math.PI * 0.5;
+    innerDisc.position.y = 0.02;
+    this.playerGroup.add(innerDisc);
+
+    // Robed Body: Cultivator silk robe with bright cyan trims
+    const robeMat = new THREE.MeshStandardMaterial({
+      color: 0x0c4b6e,
+      roughness: 0.45,
+      metalness: 0.2
+    });
     const robe = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.15, 8), robeMat);
     robe.position.y = 0.58;
     robe.castShadow = true;
     this.playerGroup.add(robe);
 
+    // Glowing Jade/Cyan Trim collar on robe
+    const trimMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const trim = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.045, 8, 20), trimMat);
+    trim.rotation.x = Math.PI * 0.5;
+    trim.position.y = 1.08;
+    this.playerGroup.add(trim);
+
     // Glowing Cyan Soul Head
     const soulMat = new THREE.MeshStandardMaterial({
       color: 0x00f0ff,
-      emissive: 0x00c4d8,
-      emissiveIntensity: 0.9
+      emissive: 0x00e5ff,
+      emissiveIntensity: 1.3
     });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), soulMat);
-    head.position.y = 1.35;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 16), soulMat);
+    head.position.y = 1.36;
     this.playerGroup.add(head);
 
-    // Direction Compass Talisman
-    const talisMat = new THREE.MeshBasicMaterial({ color: 0xe0b04a });
-    this.playerFacingArrow = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 4), talisMat);
-    this.playerFacingArrow.position.set(0, 0.3, -0.65);
+    // Mystical Spirit Halo above head (visible clearly from top-down)
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.035, 8, 24), haloMat);
+    halo.rotation.x = Math.PI * 0.5;
+    halo.position.y = 1.72;
+    this.playerGroup.add(halo);
+
+    // Direction Compass Arrow (High contrast bright gold chevron)
+    const talisMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+    this.playerFacingArrow = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.42, 4), talisMat);
+    this.playerFacingArrow.position.set(0, 0.35, -0.75);
     this.playerFacingArrow.rotation.x = Math.PI * 0.5;
     this.playerGroup.add(this.playerFacingArrow);
 
@@ -273,10 +324,10 @@ export class ThreePagodaRenderer {
     const beadMat = new THREE.MeshStandardMaterial({
       color: 0xff334b,
       emissive: 0xff1133,
-      emissiveIntensity: 0.8
+      emissiveIntensity: 1.0
     });
     for (let i = 0; i < 6; i++) {
-      const bead = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), beadMat);
+      const bead = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), beadMat);
       this.playerGroup.add(bead);
       this.playerHitBeads.push(bead);
     }
@@ -294,104 +345,68 @@ export class ThreePagodaRenderer {
 
     const group = new THREE.Group();
 
-    if (enemy.name === "Hopping Jiangshi") {
-      // Robe (Dark Qing blue)
-      const robeMat = new THREE.MeshStandardMaterial({ color: 0x152433, roughness: 0.7 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 1.1, 8), robeMat);
-      body.position.y = 0.55;
-      body.castShadow = true;
-      group.add(body);
-
-      // Pale Head
-      const headMat = new THREE.MeshStandardMaterial({ color: 0xd2dcd9, roughness: 0.8 });
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 12), headMat);
-      head.position.y = 1.3;
-      group.add(head);
-
-      // Qing Official Cap
-      const hatMat = new THREE.MeshStandardMaterial({ color: 0x090d14, roughness: 0.5 });
-      const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.06, 12), hatMat);
-      brim.position.y = 1.45;
-      group.add(brim);
-
-      const crown = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.28, 8), hatMat);
-      crown.position.y = 1.62;
-      group.add(crown);
-
-      // Yellow Taoist Talisman on Forehead
-      const talisMat = new THREE.MeshBasicMaterial({ color: 0xffda33 });
-      const talis = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.32), talisMat);
-      talis.position.set(0, 1.25, 0.28);
-      group.add(talis);
-
-      // Outstretched Arms
-      const armMat = new THREE.MeshStandardMaterial({ color: 0x152433 });
-      const arms = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 0.6), armMat);
-      arms.position.set(0, 0.9, 0.32);
-      group.add(arms);
-
-    } else if (enemy.name === "Resentful Wraith") {
-      // Ethereal floating specter
-      const ghostMat = new THREE.MeshStandardMaterial({
-        color: 0x00f0ff,
-        emissive: 0x009bb3,
-        emissiveIntensity: 0.8,
+    if (enemy.name === "Corpse Emperor") {
+      // Ground Boss Demonic Aura Ring
+      const bossRingGeo = new THREE.RingGeometry(1.3, 1.5, 36);
+      const bossRingMat = new THREE.MeshBasicMaterial({
+        color: 0xff1133,
+        side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.75,
-        roughness: 0.2
+        opacity: 0.85
       });
-      const body = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.2, 8), ghostMat);
-      body.rotation.x = Math.PI;
-      body.position.y = 1.1;
-      group.add(body);
+      const bossGroundRing = new THREE.Mesh(bossRingGeo, bossRingMat);
+      bossGroundRing.rotation.x = -Math.PI * 0.5;
+      bossGroundRing.position.y = 0.02;
+      bossGroundRing.name = "dangerRing";
+      group.add(bossGroundRing);
 
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), ghostMat);
-      head.position.y = 1.35;
-      group.add(head);
-
-    } else if (enemy.name === "Corpse Scribe") {
-      // Skeletal sorcerer with bone scroll
-      const robeMat = new THREE.MeshStandardMaterial({ color: 0x3a2745, roughness: 0.7 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.45, 1.2, 8), robeMat);
-      body.position.y = 0.6;
-      group.add(body);
-
-      // Skull
-      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 10), this.boneMat);
-      skull.position.y = 1.35;
-      group.add(skull);
-
-      // Bone Scroll
-      const scrollMat = new THREE.MeshStandardMaterial({ color: 0xd5c298, roughness: 0.6 });
-      const scroll = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.12, 0.28), scrollMat);
-      scroll.position.set(0, 0.85, 0.35);
-      group.add(scroll);
-
-    } else if (enemy.name === "Corpse Emperor") {
-      // 2.4x Colossus
-      const emperorMat = new THREE.MeshStandardMaterial({ color: 0x4a0812, roughness: 0.6 });
+      // 2.4x Colossus Body
+      const emperorMat = new THREE.MeshStandardMaterial({ color: 0x5a0815, roughness: 0.55 });
       const body = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.1, 2.2, 10), emperorMat);
       body.position.y = 1.1;
       body.castShadow = true;
       group.add(body);
 
       // Head
-      const headMat = new THREE.MeshStandardMaterial({ color: 0x240308 });
+      const headMat = new THREE.MeshStandardMaterial({ color: 0x2b040a });
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 12, 12), headMat);
       head.position.y = 2.4;
       group.add(head);
 
-      // Imperial Gold Crown
-      const crownMat = new THREE.MeshStandardMaterial({ color: 0xe0b04a, metalness: 0.8, roughness: 0.3 });
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.6, 6), crownMat);
-      crown.position.y = 2.85;
-      group.add(crown);
+      // Glowing Demonic Red Eyes
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
+      const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), eyeMat);
+      leftEye.position.set(-0.18, 2.42, 0.44);
+      group.add(leftEye);
+      const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), eyeMat);
+      rightEye.position.set(0.18, 2.42, 0.44);
+      group.add(rightEye);
+
+      // Imperial Gold Crown (with radiant gold spikes visible from top-down)
+      const crownMat = new THREE.MeshStandardMaterial({
+        color: 0xfbbf24,
+        emissive: 0xd97706,
+        emissiveIntensity: 0.6,
+        metalness: 0.8,
+        roughness: 0.25
+      });
+      const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.55, 6), crownMat);
+      crownBase.position.y = 2.85;
+      group.add(crownBase);
+
+      // Crown Spikes
+      for (let s = 0; s < 6; s++) {
+        const angle = (s / 6) * Math.PI * 2;
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.35, 4), crownMat);
+        spike.position.set(Math.cos(angle) * 0.52, 3.2, Math.sin(angle) * 0.52);
+        group.add(spike);
+      }
 
       // 2s Damage Immunity Spherical Barrier
       const barrierMat = new THREE.MeshStandardMaterial({
         color: 0xffd15c,
         emissive: 0xffa500,
-        emissiveIntensity: 0.9,
+        emissiveIntensity: 0.95,
         transparent: true,
         opacity: 0.45,
         roughness: 0.1
@@ -400,6 +415,130 @@ export class ThreePagodaRenderer {
       barrier.position.y = 1.2;
       barrier.name = "immunityBarrier";
       group.add(barrier);
+
+    } else {
+      // Normal Enemy Ground Danger Ring
+      const dangerRingGeo = new THREE.RingGeometry(0.48, 0.6, 24);
+      const dangerRingMat = new THREE.MeshBasicMaterial({
+        color: 0xff2244,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.82
+      });
+      const dangerRing = new THREE.Mesh(dangerRingGeo, dangerRingMat);
+      dangerRing.rotation.x = -Math.PI * 0.5;
+      dangerRing.position.y = 0.02;
+      dangerRing.name = "dangerRing";
+      group.add(dangerRing);
+
+      if (enemy.name === "Hopping Jiangshi") {
+        // Robe (Royal Qing Navy)
+        const robeMat = new THREE.MeshStandardMaterial({ color: 0x1e3a5f, roughness: 0.65 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 1.1, 8), robeMat);
+        body.position.y = 0.55;
+        body.castShadow = true;
+        group.add(body);
+
+        // Pale Ghastly Head
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xe8f0ed, roughness: 0.8 });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 12), headMat);
+        head.position.y = 1.3;
+        group.add(head);
+
+        // Glowing Red Eyes
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), eyeMat);
+        leftEye.position.set(-0.09, 1.32, 0.24);
+        group.add(leftEye);
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), eyeMat);
+        rightEye.position.set(0.09, 1.32, 0.24);
+        group.add(rightEye);
+
+        // Qing Official Cap
+        const hatMat = new THREE.MeshStandardMaterial({ color: 0x161c28, roughness: 0.5 });
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.06, 12), hatMat);
+        brim.position.y = 1.45;
+        group.add(brim);
+
+        const crown = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.28, 8), hatMat);
+        crown.position.y = 1.62;
+        group.add(crown);
+
+        // Red Tassel on top of hat (Crucial for top-down visibility!)
+        const tasselMat = new THREE.MeshBasicMaterial({ color: 0xff1a35 });
+        const tassel = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.22, 6), tasselMat);
+        tassel.position.y = 1.82;
+        group.add(tassel);
+
+        // Yellow Taoist Talisman on Forehead (Tilted so camera sees it)
+        const talisMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
+        const talis = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.32), talisMat);
+        talis.position.set(0, 1.25, 0.28);
+        talis.rotation.x = -0.15;
+        group.add(talis);
+
+        // Outstretched Arms
+        const armMat = new THREE.MeshStandardMaterial({ color: 0x1e3a5f });
+        const arms = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 0.6), armMat);
+        arms.position.set(0, 0.9, 0.32);
+        group.add(arms);
+
+      } else if (enemy.name === "Resentful Wraith") {
+        // Ethereal floating specter (Spectral Violet/Amethyst for zero confusion with player)
+        const ghostMat = new THREE.MeshStandardMaterial({
+          color: 0x9333ea,
+          emissive: 0x7e22ce,
+          emissiveIntensity: 1.1,
+          transparent: true,
+          opacity: 0.85,
+          roughness: 0.2
+        });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.2, 8), ghostMat);
+        body.rotation.x = Math.PI;
+        body.position.y = 1.1;
+        group.add(body);
+
+        const headMat = new THREE.MeshStandardMaterial({
+          color: 0xc084fc,
+          emissive: 0xa855f7,
+          emissiveIntensity: 1.3
+        });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 12), headMat);
+        head.position.y = 1.35;
+        group.add(head);
+
+      } else if (enemy.name === "Corpse Scribe") {
+        // Skeletal sorcerer with bone scroll
+        const robeMat = new THREE.MeshStandardMaterial({ color: 0x4c1d95, roughness: 0.65 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.45, 1.2, 8), robeMat);
+        body.position.y = 0.6;
+        group.add(body);
+
+        // Bone Skull
+        const skull = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 10), this.boneMat);
+        skull.position.y = 1.35;
+        group.add(skull);
+
+        // Glowing Crimson Eye Gems
+        const skullEyeMat = new THREE.MeshBasicMaterial({ color: 0xff1144 });
+        const se1 = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), skullEyeMat);
+        se1.position.set(-0.08, 1.37, 0.22);
+        group.add(se1);
+        const se2 = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), skullEyeMat);
+        se2.position.set(0.08, 1.37, 0.22);
+        group.add(se2);
+
+        // Glowing Bone Scroll
+        const scrollMat = new THREE.MeshStandardMaterial({
+          color: 0xfde047,
+          emissive: 0xd97706,
+          emissiveIntensity: 0.6,
+          roughness: 0.5
+        });
+        const scroll = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.12, 0.28), scrollMat);
+        scroll.position.set(0, 0.85, 0.35);
+        group.add(scroll);
+      }
     }
 
     this.scene.add(group);
@@ -575,8 +714,8 @@ export class ThreePagodaRenderer {
     // 4. Render 3D WebGL Scene
     this.renderer.render(this.scene, this.camera);
 
-    // 5. Render Crisp 2D Floating Text Overlay
-    this.renderTextOverlay();
+    // 5. Render Crisp 2D Floating Text & Tactical Overlays
+    this.renderTextOverlay(player, enemies);
   }
 
   syncTiles(player) {
@@ -686,12 +825,18 @@ export class ThreePagodaRenderer {
     const bob = Math.sin(now * 5) * 0.08;
     this.playerGroup.position.set(w.x, bob, w.z);
 
+    // Pulse player tactical ground ring
+    if (this.playerGroundRing) {
+      const ringPulse = 1.0 + Math.sin(now * 3.5) * 0.05;
+      this.playerGroundRing.scale.set(ringPulse, ringPulse, ringPulse);
+    }
+
     // Soul Point Light follows cultivator
     this.playerLight.position.set(w.x, 2.4, w.z);
 
     // Facing arrow orientation
     const angle = Math.atan2(player.facing.dx, player.facing.dy);
-    this.playerFacingArrow.position.set(player.facing.dx * 0.65, 0.35, player.facing.dy * 0.65);
+    this.playerFacingArrow.position.set(player.facing.dx * 0.75, 0.35, player.facing.dy * 0.75);
     this.playerFacingArrow.rotation.z = -angle;
 
     // Orbiting Soul Hit Beads
@@ -734,6 +879,19 @@ export class ThreePagodaRenderer {
       const gy = (enemy.renderY - this.grid.padding) / this.grid.tileSize;
       const w = this.gridToWorld(gx, gy);
 
+      // Animate ground danger combat ring
+      const dangerRing = mesh.getObjectByName("dangerRing");
+      if (dangerRing) {
+        if (enemy.isWindingUp) {
+          const wp = 1.0 + Math.sin(Date.now() / 60) * 0.2;
+          dangerRing.scale.set(wp, wp, wp);
+          dangerRing.material.color.setHex(0xffaa00); // Flashing orange warning during attack windup!
+        } else {
+          dangerRing.scale.set(1.0, 1.0, 1.0);
+          dangerRing.material.color.setHex(enemy.name === "Corpse Emperor" ? 0xff1133 : 0xff2244);
+        }
+      }
+
       // 3D Parabolic Hop Animation for Jiangshi
       let hopY = 0;
       if (enemy.name === "Hopping Jiangshi") {
@@ -770,12 +928,108 @@ export class ThreePagodaRenderer {
     });
   }
 
-  renderTextOverlay() {
+  renderTextOverlay(player, enemies) {
     if (!this.textCtx || !this.textCanvas) return;
     const ctx = this.textCtx;
     ctx.clearRect(0, 0, this.textCanvas.width, this.textCanvas.height);
 
-    // Render floating combat texts
+    // 1. Tactical Enemy Overhead Indicators (Health Pips, Attack Warnings, Boss Bar)
+    if (enemies && Array.isArray(enemies)) {
+      enemies.forEach(enemy => {
+        if (!enemy.alive) return;
+
+        const gx = (enemy.renderX - this.grid.padding) / this.grid.tileSize;
+        const gy = (enemy.renderY - this.grid.padding) / this.grid.tileSize;
+        const w = this.gridToWorld(gx, gy);
+
+        if (enemy.name === "Corpse Emperor") {
+          // Boss Health Bar & Shield Countdown
+          const sp = this.worldToScreen(w.x, 3.6, w.z);
+          if (sp.x >= -60 && sp.x <= 820 && sp.y >= -60 && sp.y <= 820) {
+            const barW = 130;
+            const barH = 10;
+            const bx = sp.x - barW * 0.5;
+            const by = sp.y - 14;
+
+            // Background & border
+            ctx.fillStyle = 'rgba(10, 6, 18, 0.85)';
+            ctx.fillRect(bx - 2, by - 2, barW + 4, barH + 4);
+            ctx.strokeStyle = '#e0b04a';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(bx - 2, by - 2, barW + 4, barH + 4);
+
+            // Health fill
+            const pct = Math.max(0, Math.min(1, enemy.hits / (enemy.maxHits || 10)));
+            ctx.fillStyle = '#ff2244';
+            ctx.fillRect(bx, by, barW * pct, barH);
+
+            // Boss label
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px JetBrains Mono, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`EMPEROR: ${enemy.hits}/${enemy.maxHits}`, sp.x, by + 8);
+
+            // Immunity Shield Countdown
+            if (enemy.invulnerableTimer > 0) {
+              ctx.fillStyle = '#ffd15c';
+              ctx.font = 'bold 11px JetBrains Mono, sans-serif';
+              ctx.shadowColor = '#000';
+              ctx.shadowBlur = 5;
+              ctx.fillText(`🛡️ IMMUNE ${enemy.invulnerableTimer.toFixed(1)}s`, sp.x, by - 6);
+              ctx.shadowBlur = 0;
+            }
+          }
+        } else {
+          // Normal Enemy Overheads
+          const sp = this.worldToScreen(w.x, 2.1, w.z);
+          if (sp.x >= -40 && sp.x <= 800 && sp.y >= -40 && sp.y <= 800) {
+            // A. Attack Windup Warning Badge
+            if (enemy.isWindingUp) {
+              const pulse = Math.floor(Date.now() / 90) % 2 === 0;
+              ctx.fillStyle = pulse ? '#ff334b' : '#ffaa00';
+              ctx.font = 'bold 11px JetBrains Mono, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.shadowColor = '#000';
+              ctx.shadowBlur = 6;
+              ctx.fillText(`⚠️ ATTACK!`, sp.x, sp.y - 14);
+              ctx.shadowBlur = 0;
+            }
+
+            // B. Enemy Hit Pips (compact red soul beads showing remaining HP)
+            const maxHits = enemy.maxHits || 2;
+            const currentHits = enemy.hits;
+            if (maxHits > 1) {
+              const pipRadius = 3.5;
+              const spacing = 10;
+              const totalW = (maxHits - 1) * spacing;
+              const startX = sp.x - totalW * 0.5;
+              const pipY = sp.y - (enemy.isWindingUp ? 26 : 12);
+
+              for (let h = 0; h < maxHits; h++) {
+                const px = startX + h * spacing;
+                ctx.beginPath();
+                ctx.arc(px, pipY, pipRadius, 0, Math.PI * 2);
+                if (h < currentHits) {
+                  ctx.fillStyle = '#ff2244';
+                  ctx.fill();
+                  ctx.strokeStyle = '#ffffff';
+                  ctx.lineWidth = 1;
+                  ctx.stroke();
+                } else {
+                  ctx.fillStyle = 'rgba(40, 20, 30, 0.7)';
+                  ctx.fill();
+                  ctx.strokeStyle = 'rgba(100, 50, 60, 0.5)';
+                  ctx.lineWidth = 0.8;
+                  ctx.stroke();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Render floating combat texts
     this.floatingTexts.forEach(ft => {
       ctx.fillStyle = ft.color;
       ctx.globalAlpha = ft.alpha;
