@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>The Blood Marrow Pagoda: Demonic Grid</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Three.js 3D WebGL Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
   <div id="game-wrapper">
@@ -55,6 +57,7 @@
     <!-- Main Game Area -->
     <main id="canvas-container">
       <canvas id="gameCanvas" width="760" height="760"></canvas>
+      <canvas id="textCanvas" width="760" height="760"></canvas>
 
       <!-- Casting Channel Overlay -->
       <div id="cast-bar-container" class="hidden">

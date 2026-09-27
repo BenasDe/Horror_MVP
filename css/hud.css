@@ -120,11 +120,7 @@
   padding: 4px;
 }
 
-#gameCanvas {
-  background: #0d0a14;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
-  border: 2px solid var(--border-dark);
-  image-rendering: pixelated;
+#gameCanvas, #textCanvas {
   max-width: 100%;
   max-height: 100%;
   width: auto;
@@ -132,6 +128,20 @@
   aspect-ratio: 1 / 1;
   object-fit: contain;
   touch-action: none;
+}
+
+#gameCanvas {
+  background: #07050b;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.95);
+  border: 2px solid var(--border-dark);
+}
+
+#textCanvas {
+  position: absolute;
+  pointer-events: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 /* Casting Channeling Overlay */

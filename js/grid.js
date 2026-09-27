@@ -274,6 +274,9 @@ export class PagodaGrid {
       horrorAudio.playShieldBreak();
       if (window.game && window.game.renderer) {
         const p = this.gridToPixel(x, y);
+        if (window.game.renderer.spawnBoneShatterDebris) {
+          window.game.renderer.spawnBoneShatterDebris(x, y);
+        }
         window.game.renderer.spawnBloodParticles(p.x + 38, p.y + 38, 16);
         window.game.renderer.addFloatingText("🦴 BONE SHATTERED", p.x + 38, p.y + 20, "#e9e5dd");
       }

@@ -8,7 +8,7 @@ import { horrorAudio } from './audio.js';
 import { PagodaGrid } from './grid.js';
 import { Player } from './player.js';
 import { SpellEngine } from './spells.js';
-import { PagodaRenderer } from './renderer.js';
+import { ThreePagodaRenderer } from './threeRenderer.js';
 import { MarrowFontManager } from './font.js';
 import { LevelGenerator } from './levelGenerator.js';
 import { GameMenuModal } from './gameMenu.js';
@@ -18,7 +18,7 @@ class DemonicPagodaGame {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
     this.grid = new PagodaGrid();
-    this.renderer = new PagodaRenderer(this.canvas, this.grid);
+    this.renderer = new ThreePagodaRenderer(this.canvas, this.grid);
     this.player = new Player(this.grid);
     this.spellEngine = new SpellEngine(this.grid);
 
