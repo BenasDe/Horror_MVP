@@ -344,3 +344,24 @@
 .mobile-hint {
   display: none;
 }
+
+/* Menu / Floor Select Button in HUD */
+.menu-group {
+  margin-left: auto;
+}
+
+.menu-btn {
+  background: linear-gradient(180deg, #2a1f33 0%, #15101a 100%);
+  border: 1px solid #7c5894;
+  color: #d8c8e8;
+  font-size: 11px;
+  padding: 6px 14px;
+  letter-spacing: 1px;
+}
+
+.menu-btn:hover {
+  background: linear-gradient(180deg, #442f55 0%, #23182e 100%);
+  border-color: #b388d9;
+  box-shadow: 0 0 12px rgba(179, 136, 217, 0.5);
+  color: #fff;
+}

@@ -45,6 +45,10 @@
           <span class="hud-label">CORRUPTED MARROW</span>
           <span id="marrow-display" class="hud-value glowing-gold">💀 0</span>
         </div>
+
+        <div class="stat-group menu-group">
+          <button type="button" id="btn-open-level-select" class="gothic-btn menu-btn">📜 MENU / FLOORS</button>
+        </div>
       </div>
     </header>
 
@@ -160,6 +164,7 @@
 
         <div class="start-actions">
           <button id="btn-start-game" class="gothic-btn pulse-glow">AWAKEN ROGUE SOUL</button>
+          <button type="button" id="btn-title-level-select" class="gothic-btn test-select-btn">SELECT FLOOR (1-26)</button>
         </div>
       </div>
     </div>
@@ -271,6 +276,33 @@
           <div>Peak Agility: <span id="vic-agi" class="text-gold">0</span> ms</div>
         </div>
         <button id="btn-play-again" class="gothic-btn pulse-glow">ENTER ASCENSION CYCLE AGAIN</button>
+      </div>
+    </div>
+
+    <!-- MODAL 5: Menu & Level Selection (Testing Pavilion) -->
+    <div id="level-select-modal" class="modal-overlay hidden">
+      <div class="modal-content gothic-box level-select-box">
+        <div class="level-select-header">
+          <h2 class="level-select-title text-gold">🏛️ TESTING PAVILION • FLOOR SELECTION</h2>
+          <p class="level-select-desc">Select any floor (1-26) to test enemy abilities, chess talismans, bone cage destruction, and boss patterns.</p>
+        </div>
+
+        <!-- Cheats / Quick Testing Toolbar -->
+        <div class="test-toolbar">
+          <span class="test-toolbar-label">QUICK TEST AIDS:</span>
+          <button type="button" id="btn-test-marrow" class="test-tool-btn">+100 MARROW</button>
+          <button type="button" id="btn-test-restore" class="test-tool-btn">RESTORE HITS & QI</button>
+          <button type="button" id="btn-test-spells" class="test-tool-btn">ALL TALISMANS (1-4)</button>
+        </div>
+
+        <!-- 26 Floors Grid -->
+        <div id="level-select-grid" class="level-select-grid">
+          <!-- Dynamically generated floor buttons -->
+        </div>
+
+        <div class="level-select-actions">
+          <button type="button" id="btn-close-level-select" class="gothic-btn close-menu-btn">CLOSE MENU</button>
+        </div>
       </div>
     </div>
 

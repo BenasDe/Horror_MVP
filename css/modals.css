@@ -88,261 +88,6 @@
   transform: translateY(-2px);
 }
 
-/* MARROW FONT SANCTUARY SHOP */
-.font-box {
-  max-width: 1060px;
-  width: 95%;
-}
-
-.font-header {
-  border-bottom: 1px solid var(--border-dark);
-  padding-bottom: 16px;
-  margin-bottom: 20px;
-}
-
-.font-title {
-  font-family: 'Cinzel', serif;
-  font-size: 26px;
-  color: var(--gold-glow);
-  letter-spacing: 2px;
-}
-
-.font-flavor {
-  font-size: 12px;
-  color: #a89cb8;
-  margin: 4px 0 12px 0;
-}
-
-.font-perks {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.badge-restored {
-  background: rgba(0, 240, 255, 0.15);
-  border: 1px solid var(--yin-cyan);
-  color: var(--yin-cyan);
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 3px;
-  font-weight: 700;
-}
-
-.marrow-font-balance {
-  margin-left: auto;
-  font-size: 14px;
-}
-
-/* Font Dual-Column Body */
-.font-body-layout {
-  display: flex;
-  gap: 24px;
-  align-items: stretch;
-}
-
-.keeper-sidebar {
-  width: 250px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  background: rgba(18, 14, 25, 0.85);
-  border: 1px solid var(--border-gold);
-  border-radius: 6px;
-  padding: 18px 14px;
-  box-shadow: 0 0 25px rgba(193, 18, 31, 0.25), inset 0 0 15px rgba(0, 0, 0, 0.6);
-}
-
-.keeper-frame {
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid var(--border-gold);
-  box-shadow: 0 0 20px rgba(255, 51, 75, 0.6);
-  margin-bottom: 12px;
-  background: #000;
-}
-
-.keeper-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.keeper-name {
-  font-family: 'Cinzel', serif;
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  margin-bottom: 2px;
-}
-
-.keeper-title {
-  font-size: 11px;
-  letter-spacing: 2px;
-  margin-bottom: 12px;
-}
-
-.keeper-quote {
-  font-size: 11px;
-  font-style: italic;
-  color: #cdc4db;
-  line-height: 1.5;
-  border-top: 1px solid #3d2f4d;
-  padding-top: 12px;
-}
-
-.font-sections {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.section-title {
-  font-family: 'Cinzel', serif;
-  font-size: 14px;
-  color: var(--bone-white);
-  letter-spacing: 1.5px;
-  margin-bottom: 10px;
-  border-left: 3px solid var(--gold-glow);
-  padding-left: 8px;
-}
-
-.upgrades-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.upgrade-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-dark);
-  padding: 12px;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.upgrade-name {
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--gold-glow);
-}
-
-.upgrade-detail {
-  font-size: 10.5px;
-  color: var(--bone-gray);
-  margin-top: 4px;
-  line-height: 1.3;
-}
-
-.current-stat {
-  font-size: 10.5px;
-  color: var(--yin-cyan);
-  margin-top: 6px;
-}
-
-.buy-btn {
-  background: #2b1f3a;
-  border: 1px solid var(--border-gold);
-  color: var(--gold-glow);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  padding: 6px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.buy-btn:hover:not(:disabled) {
-  background: #473260;
-  border-color: #ffd077;
-}
-
-.buy-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  border-color: #4a3e56;
-}
-
-/* Talisman Draft Cards Grid */
-.draft-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.draft-card {
-  background: var(--bg-card);
-  border: 1px solid #4a3754;
-  padding: 12px;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.draft-card:hover {
-  border-color: var(--crimson-bright);
-  box-shadow: 0 0 15px rgba(255, 51, 75, 0.4);
-}
-
-.draft-title {
-  font-family: 'Cinzel', serif;
-  font-size: 14px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.draft-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-}
-
-.draft-desc {
-  font-size: 10px;
-  color: var(--bone-gray);
-  line-height: 1.3;
-}
-
-.draft-price {
-  margin-top: auto;
-  font-size: 11px;
-  color: var(--gold-glow);
-  font-weight: 700;
-  text-align: right;
-}
-
-.font-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
-}
-
-.font-proceed-btn {
-  background: linear-gradient(180deg, #1b5e3f 0%, #0c3623 100%);
-  border-color: #40c082;
-}
-
-.font-proceed-btn:hover {
-  background: linear-gradient(180deg, #248156 0%, #104930 100%);
-  box-shadow: 0 0 20px rgba(64, 192, 130, 0.6);
-}
-
 /* Game Over & Victory Boxes */
 .gameover-box, .victory-box {
   text-align: center;
@@ -390,5 +135,169 @@
 .restart-fresh-btn:hover {
   background: linear-gradient(180deg, #3f2f4e 0%, #201829 100%);
   border-color: #8c75a0;
+  color: #fff;
+}
+
+/* Test Select Button on Title Screen */
+.test-select-btn {
+  background: linear-gradient(180deg, #261f32 0%, #14101b 100%);
+  border-color: #6b5581;
+  font-size: 12px;
+  color: #c9b9db;
+}
+
+.test-select-btn:hover {
+  background: linear-gradient(180deg, #3c2f50 0%, #1e1529 100%);
+  border-color: #a47ed2;
+  color: #fff;
+}
+
+/* Level Select Modal & Grid */
+.level-select-box {
+  max-width: 780px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.level-select-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.level-select-title {
+  font-family: 'Cinzel', serif;
+  font-size: 21px;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.level-select-desc {
+  font-size: 11px;
+  color: var(--bone-gray);
+  line-height: 1.4;
+}
+
+.test-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: rgba(18, 14, 25, 0.85);
+  border: 1px solid rgba(138, 92, 172, 0.3);
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.test-toolbar-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #a794bc;
+}
+
+.test-tool-btn {
+  background: #251d30;
+  border: 1px solid #5a4370;
+  color: #e5daf0;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.test-tool-btn:hover {
+  background: #3f2f54;
+  border-color: #9d75c5;
+  box-shadow: 0 0 8px rgba(157, 117, 197, 0.4);
+}
+
+.level-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.floor-select-btn {
+  background: rgba(24, 18, 32, 0.9);
+  border: 1px solid rgba(95, 75, 118, 0.45);
+  border-radius: 4px;
+  padding: 10px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+
+.floor-select-btn:hover {
+  background: rgba(45, 32, 60, 0.95);
+  border-color: #a879d6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(168, 121, 214, 0.35);
+}
+
+.floor-select-btn .floor-num {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.floor-select-btn .floor-name {
+  font-size: 9px;
+  color: #a093b1;
+  text-transform: uppercase;
+}
+
+.floor-badge {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-top: 3px;
+}
+
+.floor-badge.safe {
+  background: rgba(142, 23, 44, 0.4);
+  border: 1px solid #b72545;
+  color: #ff859d;
+}
+
+.floor-badge.boss {
+  background: rgba(220, 160, 20, 0.25);
+  border: 1px solid #f0b429;
+  color: #ffd15c;
+}
+
+.floor-badge.bone {
+  background: rgba(160, 160, 170, 0.2);
+  border: 1px solid #bbb;
+  color: #eee;
+}
+
+.level-select-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.close-menu-btn {
+  background: linear-gradient(180deg, #30243b 0%, #17111d 100%);
+  border-color: #6a537f;
+  color: #cebfde;
+  font-size: 12px;
+}
+
+.close-menu-btn:hover {
+  background: linear-gradient(180deg, #473259 0%, #251a30 100%);
+  border-color: #9d78c4;
   color: #fff;
 }

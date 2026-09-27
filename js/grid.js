@@ -83,9 +83,23 @@ export class PagodaGrid {
     const tile = this.getTile(x, y);
     if (!tile) return false;
 
-    // Ward check: If tile is shielded by player, enemy damaging cannot penetrate
-    if (this.isShielded(x, y) && owner === 'enemy' && status !== TILE_STATUS.NORMAL) {
-      return false; // Ward protects tile
+    // 1. Shield Check: Any damaging effect destroys shield in 1 hit!
+    if (status === TILE_STATUS.DAMAGING && this.isShielded(x, y)) {
+      this.breakShield(x, y);
+      if (owner === 'enemy') {
+        return false; // Ward absorbed enemy hit completely and broke
+      }
+    }
+
+    // 2. Bone Destruction: Any damaging effect shatters bones in 1 hit!
+    if (status === TILE_STATUS.DAMAGING) {
+      this.breakBone(x, y);
+    }
+
+    // 3. If bone is being spawned on an active damaging tile, crush it immediately
+    if (status === TILE_STATUS.INACCESSIBLE && this.isDamagingTo(x, y, 'enemy')) {
+      horrorAudio.playShieldBreak();
+      return false; // Bone crushed by active player damaging spikes
     }
 
     let defaultDuration = 0;
@@ -188,15 +202,81 @@ export class PagodaGrid {
 
   isShielded(x, y) {
     const tile = this.getTile(x, y);
-    return Boolean(tile && tile.effects.player && tile.effects.player.status === TILE_STATUS.SHIELDED);
+    return Boolean(
+      tile && (
+        (tile.effects.player && tile.effects.player.status === TILE_STATUS.SHIELDED) ||
+        (tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.SHIELDED)
+      )
+    );
   }
 
   breakShield(x, y) {
     const tile = this.getTile(x, y);
-    if (tile && tile.effects.player && tile.effects.player.status === TILE_STATUS.SHIELDED) {
+    if (!tile) return false;
+    let broken = false;
+    if (tile.effects.player && tile.effects.player.status === TILE_STATUS.SHIELDED) {
       tile.effects.player = null;
+      broken = true;
+    }
+    if (tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.SHIELDED) {
+      tile.effects.enemy = null;
+      broken = true;
+    }
+    if (tile.telegraphs.player && tile.telegraphs.player.targetStatus === TILE_STATUS.SHIELDED) {
+      tile.telegraphs.player = null;
+      broken = true;
+    }
+    if (broken) {
       this.syncTileTopState(tile);
       horrorAudio.playShieldBreak();
+      if (window.game && window.game.renderer) {
+        const p = this.gridToPixel(x, y);
+        window.game.renderer.spawnBloodParticles(p.x + 38, p.y + 38, 14);
+        window.game.renderer.addFloatingText("🛡️ SHIELD BROKEN", p.x + 38, p.y + 20, "#00f0ff");
+      }
+      return true;
+    }
+    return false;
+  }
+
+  isBone(x, y) {
+    const tile = this.getTile(x, y);
+    if (!tile) return false;
+    return Boolean(
+      (tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.INACCESSIBLE) ||
+      (tile.effects.environment && tile.effects.environment.status === TILE_STATUS.INACCESSIBLE) ||
+      (tile.effects.player && tile.effects.player.status === TILE_STATUS.INACCESSIBLE)
+    );
+  }
+
+  breakBone(x, y) {
+    const tile = this.getTile(x, y);
+    if (!tile) return false;
+    let broken = false;
+    if (tile.effects.enemy && tile.effects.enemy.status === TILE_STATUS.INACCESSIBLE) {
+      tile.effects.enemy = null;
+      broken = true;
+    }
+    if (tile.effects.environment && tile.effects.environment.status === TILE_STATUS.INACCESSIBLE) {
+      tile.effects.environment = null;
+      broken = true;
+    }
+    if (tile.effects.player && tile.effects.player.status === TILE_STATUS.INACCESSIBLE) {
+      tile.effects.player = null;
+      broken = true;
+    }
+    if (tile.telegraphs.enemy && tile.telegraphs.enemy.targetStatus === TILE_STATUS.INACCESSIBLE) {
+      tile.telegraphs.enemy = null;
+      broken = true;
+    }
+    if (broken) {
+      this.syncTileTopState(tile);
+      horrorAudio.playShieldBreak();
+      if (window.game && window.game.renderer) {
+        const p = this.gridToPixel(x, y);
+        window.game.renderer.spawnBloodParticles(p.x + 38, p.y + 38, 16);
+        window.game.renderer.addFloatingText("🦴 BONE SHATTERED", p.x + 38, p.y + 20, "#e9e5dd");
+      }
       return true;
     }
     return false;

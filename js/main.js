@@ -11,6 +11,8 @@ import { SpellEngine } from './spells.js';
 import { PagodaRenderer } from './renderer.js';
 import { MarrowFontManager } from './font.js';
 import { LevelGenerator } from './levelGenerator.js';
+import { LevelSelectModal } from './levelSelect.js';
+import { InputHandler } from './input.js';
 
 class DemonicPagodaGame {
   constructor() {
@@ -28,13 +30,14 @@ class DemonicPagodaGame {
     this.totalKills = 0;
     this.floorClearTimer = 0;
 
-    // Keys currently pressed
-    this.keysDown = {};
-    this.touchDirection = null;
-
     this.initMarrowFont();
+    this.levelSelect = new LevelSelectModal(this);
+    this.input = new InputHandler(this.canvas, {
+      onCast: (slot) => this.triggerSpellCast(slot),
+      onMoveImmediate: (dx, dy) => this.handleMoveImmediate(dx, dy)
+    });
+
     this.bindDOM();
-    this.bindInputs();
 
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.gameLoop(t));
@@ -91,6 +94,16 @@ class DemonicPagodaGame {
       this.startGame();
     });
 
+    // Menu / Floor Select Buttons
+    const btnOpenMenu = document.getElementById('btn-open-level-select');
+    if (btnOpenMenu) {
+      btnOpenMenu.addEventListener('click', () => this.levelSelect.open());
+    }
+    const btnTitleSelect = document.getElementById('btn-title-level-select');
+    if (btnTitleSelect) {
+      btnTitleSelect.addEventListener('click', () => this.levelSelect.open());
+    }
+
     // Spell Slot clicks
     for (let i = 0; i < 4; i++) {
       const slotEl = document.getElementById(`slot-${i}`);
@@ -123,92 +136,10 @@ class DemonicPagodaGame {
     };
   }
 
-  bindInputs() {
-    window.addEventListener('keydown', (e) => {
-      this.keysDown[e.code] = true;
-
-      if (this.gameState !== 'PLAYING') return;
-
-      // Spell triggers
-      if (e.code === 'Digit1' || e.code === 'KeyQ') this.triggerSpellCast(0);
-      else if (e.code === 'Digit2' || e.code === 'KeyE') this.triggerSpellCast(1);
-      else if (e.code === 'Digit3' || e.code === 'KeyR') this.triggerSpellCast(2);
-      else if (e.code === 'Digit4' || e.code === 'Space') this.triggerSpellCast(3);
-    });
-
-    window.addEventListener('keyup', (e) => {
-      this.keysDown[e.code] = false;
-    });
-
-    // Mobile Virtual D-Pad bindings
-    const dpadButtons = [
-      { id: 'btn-dpad-up', dx: 0, dy: -1 },
-      { id: 'btn-dpad-down', dx: 0, dy: 1 },
-      { id: 'btn-dpad-left', dx: -1, dy: 0 },
-      { id: 'btn-dpad-right', dx: 1, dy: 0 }
-    ];
-
-    dpadButtons.forEach(({ id, dx, dy }) => {
-      const btn = document.getElementById(id);
-      if (!btn) return;
-
-      const handlePress = (e) => {
-        if (e.cancelable) e.preventDefault();
-        horrorAudio.ensureContext();
-        btn.classList.add('active');
-        this.touchDirection = { dx, dy };
-        if (this.gameState === 'PLAYING' && !this.player.isMoving && !this.player.isCasting) {
-          this.player.tryMove(dx, dy, this.enemies);
-        }
-      };
-
-      const handleRelease = (e) => {
-        btn.classList.remove('active');
-        if (this.touchDirection && this.touchDirection.dx === dx && this.touchDirection.dy === dy) {
-          this.touchDirection = null;
-        }
-      };
-
-      btn.addEventListener('pointerdown', handlePress);
-      btn.addEventListener('pointerup', handleRelease);
-      btn.addEventListener('pointercancel', handleRelease);
-      btn.addEventListener('pointerleave', handleRelease);
-    });
-
-    // Touch swipe gestures on gameCanvas
-    let touchStartX = 0;
-    let touchStartY = 0;
-
-    this.canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 0) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        horrorAudio.ensureContext();
-      }
-    }, { passive: true });
-
-    this.canvas.addEventListener('touchend', (e) => {
-      if (this.gameState !== 'PLAYING') return;
-      if (this.player.isMoving || this.player.isCasting) return;
-
-      if (e.changedTouches.length > 0) {
-        const deltaX = e.changedTouches[0].clientX - touchStartX;
-        const deltaY = e.changedTouches[0].clientY - touchStartY;
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
-        const swipeThreshold = 24; // pixels
-
-        if (absX > swipeThreshold || absY > swipeThreshold) {
-          if (absX > absY) {
-            const dx = deltaX > 0 ? 1 : -1;
-            this.player.tryMove(dx, 0, this.enemies);
-          } else {
-            const dy = deltaY > 0 ? 1 : -1;
-            this.player.tryMove(0, dy, this.enemies);
-          }
-        }
-      }
-    }, { passive: true });
+  handleMoveImmediate(dx, dy) {
+    if (this.gameState === 'PLAYING' && !this.player.isMoving && !this.player.isCasting) {
+      this.player.tryMove(dx, dy, this.enemies);
+    }
   }
 
   showCombatBanner(text, duration = 1.8) {
@@ -300,14 +231,7 @@ class DemonicPagodaGame {
     if (this.gameState !== 'PLAYING') return;
     if (this.player.isMoving || this.player.isCasting) return;
 
-    let dx = 0;
-    let dy = 0;
-
-    if (this.keysDown['KeyW'] || this.keysDown['ArrowUp'] || (this.touchDirection && this.touchDirection.dy < 0)) dy -= 1;
-    else if (this.keysDown['KeyS'] || this.keysDown['ArrowDown'] || (this.touchDirection && this.touchDirection.dy > 0)) dy += 1;
-    else if (this.keysDown['KeyA'] || this.keysDown['ArrowLeft'] || (this.touchDirection && this.touchDirection.dx < 0)) dx -= 1;
-    else if (this.keysDown['KeyD'] || this.keysDown['ArrowRight'] || (this.touchDirection && this.touchDirection.dx > 0)) dx += 1;
-
+    const { dx, dy } = this.input.getMovementVector();
     if (dx !== 0 || dy !== 0) {
       this.player.tryMove(dx, dy, this.enemies);
     }
@@ -391,6 +315,14 @@ class DemonicPagodaGame {
       this.handleVictory();
       return;
     }
+    this.startFloor(this.currentFloor);
+  }
+
+  jumpToFloor(floorNum) {
+    this.currentFloor = floorNum;
+    this.titleModal.classList.add('hidden');
+    this.gameOverModal.classList.add('hidden');
+    this.victoryModal.classList.add('hidden');
     this.startFloor(this.currentFloor);
   }
 
