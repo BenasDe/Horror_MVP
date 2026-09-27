@@ -127,5 +127,26 @@ export function renderEnemyEntity(ctx, enemy, tileSize) {
     ctx.font = 'bold 12px JetBrains Mono';
     ctx.textAlign = 'center';
     ctx.fillText(`${enemy.hits} / ${enemy.maxHits} HITS`, cx, cy + 4);
+
+    // 2-Second Damage Immunity Aura & Countdown
+    if (enemy.invulnerableTimer > 0) {
+      const now = Date.now() / 1000;
+      const pulse = (Math.sin(now * 12) + 1) * 0.5;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 38 + pulse * 4, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffd15c';
+      ctx.lineWidth = 3.5;
+      ctx.shadowColor = '#ffd15c';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+
+      // Shield timer text badge
+      ctx.fillStyle = '#ffd15c';
+      ctx.font = 'bold 10.5px JetBrains Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(`🛡️ IMMUNE ${enemy.invulnerableTimer.toFixed(1)}s`, cx, cy + 48);
+      ctx.restore();
+    }
   }
 }

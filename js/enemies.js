@@ -410,20 +410,100 @@ export class CorpseScribeEnemy extends BaseEnemy {
 // 4. Floor 26 Boss: The Corpse Emperor
 export class CorpseEmperorBoss extends BaseEnemy {
   constructor(grid, x = 4, y = 2) {
-    super(grid, x, y, "Corpse Emperor", 6, 100);
+    super(grid, x, y, "Corpse Emperor", 8, 100);
     this.phase = 1;
-    this.attackTimer = 0.8;
+    this.attackTimer = 2.2; // initial prep time before first attack
     this.attackCycle = 0;
+    this.moveCooldown = 2.6; // active movement interval
+    this.invulnerableTimer = 0; // 2s damage immunity after each hit
+    this.thrones = [
+      [2, 2], [6, 2], [2, 6], [6, 6],
+      [4, 2], [4, 4], [4, 6], [2, 4], [6, 4]
+    ];
+  }
+
+  takeDamage(amount = 1) {
+    if (!this.alive) return false;
+    // 2-second Damage Immunity check: ignore all extra spell ticks!
+    if (this.invulnerableTimer > 0) {
+      return false;
+    }
+
+    this.hits -= amount;
+    this.invulnerableTimer = 2.0; // 2 seconds of damage immunity!
+    horrorAudio.playShieldBreak();
+
+    if (window.game && window.game.renderer) {
+      window.game.renderer.triggerShake(5);
+      const p = this.grid.gridToPixel(this.x, this.y);
+      window.game.renderer.spawnBloodParticles(p.x + 38, p.y + 38, 20);
+      window.game.renderer.addFloatingText("🛡️ IMMUNE (2s)", p.x + 38, p.y + 10, "#ffd15c", 13);
+    }
+
+    if (this.hits <= 0) {
+      this.hits = 0;
+      this.alive = false;
+      return true;
+    }
+    return false;
   }
 
   update(dt, player, enemies) {
     if (!this.alive) return;
+
+    // Tick down 2s damage immunity
+    if (this.invulnerableTimer > 0) {
+      this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
+    }
+
+    // Process movement interpolation and damaging tiles check
     this.updateMovement(dt);
 
+    // Active boss movement AI
+    this.updateBossMovement(dt, player);
+
+    // Attack cooldown (well-paced, giving player room to move)
     this.attackTimer -= dt;
     if (this.attackTimer <= 0) {
-      this.attackTimer = 2.4; // faster boss attack cycle (was 3.2s)
+      this.attackTimer = 4.0; // 4.0s paced attack cycle
       this.executeBossAttack(player);
+    }
+  }
+
+  updateBossMovement(dt, player) {
+    if (this.isMoving) return;
+
+    this.moveCooldown -= dt;
+    if (this.moveCooldown <= 0) {
+      // Pick a strategic throne at least 2 tiles away, and not on player
+      const availableThrones = this.thrones.filter(([tx, ty]) => {
+        const dist = Math.abs(tx - this.x) + Math.abs(ty - this.y);
+        const onPlayer = (tx === player.x && ty === player.y);
+        return dist >= 2 && !onPlayer;
+      });
+
+      if (availableThrones.length > 0) {
+        const [nextX, nextY] = availableThrones[Math.floor(Math.random() * availableThrones.length)];
+        
+        // Brief telegraph at landing site
+        this.grid.telegraphTile(nextX, nextY, TILE_STATUS.DAMAGING, 0.6, 'enemy', (tx, ty) => {
+          if (tx === player.x && ty === player.y) {
+            player.takeDamage(false, "Emperor's Imperial Stomp");
+          }
+        });
+
+        // Initiate leap/reposition
+        this.isMoving = true;
+        this.fromX = this.x;
+        this.fromY = this.y;
+        this.toX = nextX;
+        this.toY = nextY;
+        this.moveTimer = 0;
+        this.moveDuration = 0.45;
+        this.moveCooldown = 2.8 + Math.random() * 0.8;
+      } else {
+        this.moveCooldown = 1.5;
+      }
     }
   }
 
@@ -431,14 +511,14 @@ export class CorpseEmperorBoss extends BaseEnemy {
     this.attackCycle = (this.attackCycle + 1) % 3;
 
     if (this.attackCycle === 0) {
-      // Imperial Cross (Rook)
+      // 1. Imperial Cardinal Lasers (Rook Cross) with generous 1.2s telegraph
       const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
       dirs.forEach(([dx, dy]) => {
         for (let s = 1; s <= 8; s++) {
           const tx = this.x + dx * s;
           const ty = this.y + dy * s;
           if (this.grid.isInBounds(tx, ty)) {
-            this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 1.0, 'enemy', (px, py) => {
+            this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 1.2, 'enemy', (px, py) => {
               if (px === player.x && py === player.y) {
                 player.takeDamage(false, "Imperial Cross Laser");
               }
@@ -447,7 +527,7 @@ export class CorpseEmperorBoss extends BaseEnemy {
         }
       });
     } else if (this.attackCycle === 1) {
-      // Demonic Knight Rain (L-shapes)
+      // 2. Demonic Knight Volley (8 L-shaped moves around Emperor)
       const offsets = [
         [1, 2], [2, 1], [-1, 2], [-2, 1],
         [1, -2], [2, -1], [-1, -2], [-2, -1]
@@ -456,7 +536,7 @@ export class CorpseEmperorBoss extends BaseEnemy {
         const tx = this.x + ox;
         const ty = this.y + oy;
         if (this.grid.isInBounds(tx, ty)) {
-          this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 0.8, 'enemy', (px, py) => {
+          this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 1.1, 'enemy', (px, py) => {
             if (px === player.x && py === player.y) {
               player.takeDamage(false, "Demonic Knight Rain");
             }
@@ -464,26 +544,18 @@ export class CorpseEmperorBoss extends BaseEnemy {
         }
       });
     } else {
-      // Corpse Extraction (Board apocalypse with random safe tiles on 9x9 grid)
-      const safeTiles = [
-        { x: 1, y: 1 },
-        { x: 7, y: 1 },
-        { x: 1, y: 7 },
-        { x: 7, y: 7 }
-      ];
-      // Telegraph everything except safe tiles
-      for (let y = 0; y < this.grid.rows; y++) {
+      // 3. Yin Void Cleave (Quadrant Cleave leaving 50% of the arena safe!)
+      const cleaveTop = player.y > 4; // Cleave where player isn't initially, then sweep
+      const startY = cleaveTop ? 0 : 5;
+      const endY = cleaveTop ? 4 : 8;
+
+      for (let y = startY; y <= endY; y++) {
         for (let x = 0; x < this.grid.cols; x++) {
-          const isSafe = safeTiles.some(st => st.x === x && st.y === y);
-          if (!isSafe) {
-            this.grid.telegraphTile(x, y, TILE_STATUS.DAMAGING, 2.0, 'enemy', (px, py) => {
-              if (px === player.x && py === player.y) {
-                player.takeDamage(false, "Emperor's Apocalyptic Purge");
-              }
-            });
-          } else {
-            this.grid.setTileStatus(x, y, TILE_STATUS.SHIELDED, 4.0, 'player');
-          }
+          this.grid.telegraphTile(x, y, TILE_STATUS.DAMAGING, 1.6, 'enemy', (px, py) => {
+            if (px === player.x && py === player.y) {
+              player.takeDamage(false, "Yin Void Cleave");
+            }
+          });
         }
       }
     }
