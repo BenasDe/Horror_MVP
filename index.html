@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Blood Marrow Pagoda: Demonic Grid</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-wrapper">
+    <!-- Atmospheric Ambient Vignette -->
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+
+    <!-- Top Status Bar -->
+    <header id="hud-top">
+      <div class="hud-panel floor-panel">
+        <span class="hud-label">PAGODA TIER</span>
+        <span id="floor-display" class="hud-value glowing-crimson">FLOOR 1 / 26</span>
+        <span id="floor-subtitle" class="hud-subtitle">Outer Corrupted Hall</span>
+      </div>
+
+      <div class="hud-panel stats-panel">
+        <div class="stat-group">
+          <span class="hud-label">SOUL TALISMANS (HITS)</span>
+          <div id="hits-container" class="hits-display">
+            <!-- Dynamic soul beads -->
+          </div>
+        </div>
+
+        <div class="stat-group">
+          <span class="hud-label">QI STAMINA</span>
+          <div class="stamina-wrapper">
+            <span id="stamina-display" class="hud-value glowing-cyan">4 / 4 CASTS</span>
+            <div id="stamina-pips" class="stamina-pips"></div>
+          </div>
+        </div>
+
+        <div class="stat-group">
+          <span class="hud-label">AGILITY</span>
+          <span id="agility-display" class="hud-value">250 ms / step</span>
+        </div>
+
+        <div class="stat-group marrow-group">
+          <span class="hud-label">CORRUPTED MARROW</span>
+          <span id="marrow-display" class="hud-value glowing-gold">💀 0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main id="canvas-container">
+      <canvas id="gameCanvas" width="760" height="760"></canvas>
+
+      <!-- Casting Channel Overlay -->
+      <div id="cast-bar-container" class="hidden">
+        <div class="cast-status-header">
+          <span class="root-warning">⚠️ ROOTED IN PLACE</span>
+          <span id="cast-spell-name">Priming Demonic Talisman...</span>
+        </div>
+        <div class="cast-progress-bar">
+          <div id="cast-progress-fill"></div>
+        </div>
+        <div id="cast-timer-text">0.0s</div>
+      </div>
+
+      <!-- Quick Combat Notifications -->
+      <div id="combat-banner" class="hidden"></div>
+    </main>
+
+    <!-- Bottom Spells Hotbar -->
+    <footer id="hud-bottom">
+      <div class="spell-slots-container">
+        <div class="spell-slot" id="slot-0" data-slot="0">
+          <div class="keybind-tag">[1] / [Q]</div>
+          <div class="spell-pattern-icon" id="icon-0">♟️</div>
+          <div class="spell-info">
+            <div class="spell-title" id="name-0">Pawn's Stride</div>
+            <div class="spell-meta">
+              <span class="pattern-badge" id="pattern-0">Pawn (Forward 2)</span>
+              <span class="delay-badge" id="delay-0">0.35s delay</span>
+            </div>
+            <div class="spell-desc" id="desc-0">Forward thrust: turns 2 tiles directly ahead into Damaging Yin Spikes.</div>
+          </div>
+        </div>
+
+        <div class="spell-slot disabled" id="slot-1" data-slot="1">
+          <div class="keybind-tag">[2] / [E]</div>
+          <div class="spell-pattern-icon" id="icon-1">➕</div>
+          <div class="spell-info">
+            <div class="spell-title" id="name-1">[Empty Slot]</div>
+            <div class="spell-meta">
+              <span class="pattern-badge" id="pattern-1">UNASSIGNED</span>
+              <span class="delay-badge" id="delay-1">Draft at Font</span>
+            </div>
+            <div class="spell-desc" id="desc-1">Acquire new chess talismans on safe floors (Marrow Fonts).</div>
+          </div>
+        </div>
+
+        <div class="spell-slot disabled" id="slot-2" data-slot="2">
+          <div class="keybind-tag">[3] / [R]</div>
+          <div class="spell-pattern-icon" id="icon-2">➕</div>
+          <div class="spell-info">
+            <div class="spell-title" id="name-2">[Empty Slot]</div>
+            <div class="spell-meta">
+              <span class="pattern-badge" id="pattern-2">UNASSIGNED</span>
+              <span class="delay-badge" id="delay-2">Draft at Font</span>
+            </div>
+            <div class="spell-desc" id="desc-2">Acquire new chess talismans on safe floors (Marrow Fonts).</div>
+          </div>
+        </div>
+
+        <div class="spell-slot disabled" id="slot-3" data-slot="3">
+          <div class="keybind-tag">[4] / [SPACE]</div>
+          <div class="spell-pattern-icon" id="icon-3">➕</div>
+          <div class="spell-info">
+            <div class="spell-title" id="name-3">[Empty Slot]</div>
+            <div class="spell-meta">
+              <span class="pattern-badge" id="pattern-3">UNASSIGNED</span>
+              <span class="delay-badge" id="delay-3">Draft at Font</span>
+            </div>
+            <div class="spell-desc" id="desc-3">Acquire new chess talismans on safe floors (Marrow Fonts).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Hint -->
+      <div class="controls-hint">
+        <span>[W A S D] / [Arrows] Real-Time Move</span>
+        <span>•</span>
+        <span>[1 2 3 4] Cast Demonic Talismans</span>
+        <span>•</span>
+        <span>Movement Locked while Channeling</span>
+      </div>
+    </footer>
+
+    <!-- MODAL 1: Title & Introduction Screen -->
+    <div id="title-modal" class="modal-overlay">
+      <div class="modal-content gothic-box title-box">
+        <h1 class="pagoda-title">THE BLOOD MARROW PAGODA</h1>
+        <h2 class="pagoda-subtitle">DEMONIC GRID OF THE TWENTY-SIX CORPSES</h2>
+        
+        <div class="lore-text">
+          <p>Your soul has been bound inside the 26-floor pagoda—a cursed demonic artifact where ancient elders refine rotting Jiangshi.</p>
+          <p>The oppressive Yin energy has crystallized the spatial realm into a rigid, maddening grid. You have only <strong class="text-crimson">1 Soul Hit</strong> before annihilation.</p>
+          <p>Carve through leaping corpse fiends using chess-patterned talismans that transform the floor itself into <span class="text-crimson">Damaging</span>, <span class="text-bone">Inaccessible</span>, or <span class="text-cyan">Shielded</span> tiles. Every 5 floors, reach the <strong>Marrow Font</strong> to buy new spells and refine your Agility, Stamina, and Health.</p>
+        </div>
+
+        <div class="start-actions">
+          <button id="btn-start-game" class="gothic-btn pulse-glow">AWAKEN ROGUE SOUL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: Safe Floor (Marrow Font) Shop -->
+    <div id="font-modal" class="modal-overlay hidden">
+      <div class="modal-content gothic-box font-box">
+        <div class="font-header">
+          <h2 class="font-title">MARROW FONT SANCTUARY</h2>
+          <p class="font-flavor">The oppressive Yin pressure momentarily recedes. The blood fountain murmurs with dormant power.</p>
+          <div class="font-perks">
+            <span class="badge-restored">✨ ALL SOUL HITS RESTORED</span>
+            <span class="badge-restored">✨ QI STAMINA REPLENISHED</span>
+            <span class="marrow-font-balance">Your Marrow: <strong id="font-marrow-val" class="glowing-gold">💀 0</strong></span>
+          </div>
+        </div>
+
+        <!-- Altar Tabs / Sections -->
+        <div class="font-sections">
+          <!-- Stat Refinements -->
+          <div class="font-section">
+            <h3 class="section-title">CORPSE MARROW REFINEMENT (STATS)</h3>
+            <div class="upgrades-list">
+              <div class="upgrade-card" id="upg-health">
+                <div class="upgrade-info">
+                  <div class="upgrade-name">Bone Weaving (Health)</div>
+                  <div class="upgrade-detail">Increase maximum hits by +1 (Survive more impacts).</div>
+                  <div class="current-stat" id="stat-curr-hp">Current: 1 Hit</div>
+                </div>
+                <button class="buy-btn" id="btn-buy-hp">Refine (40 Marrow)</button>
+              </div>
+
+              <div class="upgrade-card" id="upg-agility">
+                <div class="upgrade-info">
+                  <div class="upgrade-name">Wind-Stepping Soul (Agility)</div>
+                  <div class="upgrade-detail">Reduces real-time tile transition cooldown by 25ms.</div>
+                  <div class="current-stat" id="stat-curr-agi">Current: 250ms / step</div>
+                </div>
+                <button class="buy-btn" id="btn-buy-agi">Refine (25 Marrow)</button>
+              </div>
+
+              <div class="upgrade-card" id="upg-stamina">
+                <div class="upgrade-info">
+                  <div class="upgrade-name">Meridian Cleansing (Stamina)</div>
+                  <div class="upgrade-detail">Increase maximum spell casts per floor by +2 charges.</div>
+                  <div class="current-stat" id="stat-curr-stam">Current: 4 Casts</div>
+                </div>
+                <button class="buy-btn" id="btn-buy-stam">Refine (20 Marrow)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Demonic Talisman Drafts -->
+          <div class="font-section">
+            <h3 class="section-title">FORGE DEMONIC TALISMANS (SPELL DRAFTS)</h3>
+            <div id="draft-spells-container" class="draft-cards-grid">
+              <!-- Generated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <div class="font-actions">
+          <button id="btn-ascend-font" class="gothic-btn font-proceed-btn">ASCEND TO NEXT FLOOR</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: Game Over Screen -->
+    <div id="game-over-modal" class="modal-overlay hidden">
+      <div class="modal-content gothic-box gameover-box">
+        <h2 class="gameover-title text-crimson">SOUL EXTINGUISHED</h2>
+        <p class="gameover-desc">Your bones were crushed beneath the oppressive Yin floor. Another corpse added to the Demonic Pagoda.</p>
+        <div class="gameover-stats">
+          <div>Floors Breached: <span id="go-floors" class="text-gold">1</span> / 26</div>
+          <div>Jiangshi Slain: <span id="go-kills" class="text-gold">0</span></div>
+          <div>Marrow Harvested: <span id="go-marrow" class="text-gold">0</span></div>
+        </div>
+        <button id="btn-restart" class="gothic-btn pulse-glow">REVIVE AT FLOOR 1</button>
+      </div>
+    </div>
+
+    <!-- MODAL 4: Victory Screen -->
+    <div id="victory-modal" class="modal-overlay hidden">
+      <div class="modal-content gothic-box victory-box">
+        <h2 class="victory-title text-gold">THE 26TH SEAL SHATTERED</h2>
+        <p class="victory-desc">The Corpse Emperor has collapsed into dust. The blood-soaked Yin grid fractures into shards, freeing your rogue soul from the Blood Marrow Pagoda!</p>
+        <div class="gameover-stats">
+          <div>Total Fiends Destroyed: <span id="vic-kills" class="text-gold">0</span></div>
+          <div>Final Health: <span id="vic-hp" class="text-gold">0</span> Hits</div>
+          <div>Peak Agility: <span id="vic-agi" class="text-gold">0</span> ms</div>
+        </div>
+        <button id="btn-play-again" class="gothic-btn pulse-glow">ENTER ASCENSION CYCLE AGAIN</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
