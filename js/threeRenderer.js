@@ -268,6 +268,73 @@ export class ThreePagodaRenderer {
         };
       }
     }
+
+    this.initBaguaSeal();
+  }
+
+  initBaguaSeal() {
+    this.baguaGroup = new THREE.Group();
+    this.baguaGroup.position.set(0, 0.015, 0);
+
+    const bronzeMat = new THREE.MeshBasicMaterial({
+      color: 0xc8a458,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.45
+    });
+
+    const jadeGlowMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.35
+    });
+
+    // 1. Outer Trigram Circle
+    const outerRing = new THREE.Mesh(new THREE.RingGeometry(2.35, 2.45, 48), bronzeMat);
+    outerRing.rotation.x = -Math.PI * 0.5;
+    this.baguaGroup.add(outerRing);
+
+    // 2. Middle decorative ring
+    const midRing = new THREE.Mesh(new THREE.RingGeometry(1.65, 1.72, 40), bronzeMat);
+    midRing.rotation.x = -Math.PI * 0.5;
+    this.baguaGroup.add(midRing);
+
+    // 3. Inner Taiji (Yin-Yang) ring
+    const innerRing = new THREE.Mesh(new THREE.RingGeometry(0.85, 0.95, 32), jadeGlowMat);
+    innerRing.rotation.x = -Math.PI * 0.5;
+    this.baguaGroup.add(innerRing);
+
+    // 4. Eight Trigrams (八卦) carved between middle and outer rings
+    const barGeo = new THREE.BoxGeometry(0.24, 0.01, 0.04);
+    const halfBarGeo = new THREE.BoxGeometry(0.1, 0.01, 0.04);
+
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * Math.PI) / 4;
+      const tGroup = new THREE.Group();
+      tGroup.rotation.y = -angle;
+
+      // 3 parallel bars (solid or broken yin/yang lines)
+      for (let bar = 0; bar < 3; bar++) {
+        const r = 1.9 + bar * 0.16;
+        const isBroken = (i + bar) % 2 === 1;
+        if (isBroken) {
+          const leftHalf = new THREE.Mesh(halfBarGeo, bronzeMat);
+          leftHalf.position.set(-0.07, 0, r);
+          tGroup.add(leftHalf);
+          const rightHalf = new THREE.Mesh(halfBarGeo, bronzeMat);
+          rightHalf.position.set(0.07, 0, r);
+          tGroup.add(rightHalf);
+        } else {
+          const solid = new THREE.Mesh(barGeo, bronzeMat);
+          solid.position.set(0, 0, r);
+          tGroup.add(solid);
+        }
+      }
+      this.baguaGroup.add(tGroup);
+    }
+
+    this.scene.add(this.baguaGroup);
   }
 
   initEntityMeshes() {
@@ -822,7 +889,10 @@ export class ThreePagodaRenderer {
       }
     }
 
-    // 6. Spirit Fog Celestial Motion
+    // 6. Bagua Seal & Spirit Fog Celestial Motion
+    if (this.baguaGroup) {
+      this.baguaGroup.rotation.y += dt * 0.025;
+    }
     this.spiritFogPlanes.forEach(fp => {
       fp.mesh.rotation.z += dt * fp.rotSpeed;
     });
