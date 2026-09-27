@@ -20,6 +20,11 @@ export class ThreePagodaRenderer {
     this.floatingTexts = [];
     this.boneDebris = [];
     this.bloodParticles = [];
+    this.torchEmbers = [];
+    this.spiritFogPlanes = [];
+    this.emberSpawnTimer = 0;
+    this.flashingMeshes = new Map();
+    this.playerFlashTimer = 0;
 
     this.initThree();
     this.initFloorTiles();
@@ -170,6 +175,24 @@ export class ThreePagodaRenderer {
     const eastCurb = new THREE.Mesh(new THREE.BoxGeometry(wallThick, 0.6, arenaSpan), curbMat);
     eastCurb.position.set(4.5 * this.TILE_SIZE + wallThick * 0.5, 0.3, 0);
     this.scene.add(eastCurb);
+
+    // Low-lying Ethereal Pagoda Spirit Mist Discs
+    this.spiritFogPlanes = [];
+    const mistGeo = new THREE.CircleGeometry(5.2, 24);
+    const mistMat = new THREE.MeshBasicMaterial({
+      color: 0x18102a,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.12
+    });
+
+    for (let m = 0; m < 4; m++) {
+      const mist = new THREE.Mesh(mistGeo, mistMat);
+      mist.rotation.x = -Math.PI * 0.5;
+      mist.position.set((m % 2 === 0 ? -2.8 : 2.8), 0.04, (m < 2 ? -2.8 : 2.8));
+      this.scene.add(mist);
+      this.spiritFogPlanes.push({ mesh: mist, rotSpeed: (m % 2 === 0 ? 0.018 : -0.022) });
+    }
   }
 
   initFloorTiles() {
@@ -245,6 +268,73 @@ export class ThreePagodaRenderer {
         };
       }
     }
+
+    this.initBaguaSeal();
+  }
+
+  initBaguaSeal() {
+    this.baguaGroup = new THREE.Group();
+    this.baguaGroup.position.set(0, 0.015, 0);
+
+    const bronzeMat = new THREE.MeshBasicMaterial({
+      color: 0xc8a458,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.45
+    });
+
+    const jadeGlowMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.35
+    });
+
+    // 1. Outer Trigram Circle
+    const outerRing = new THREE.Mesh(new THREE.RingGeometry(2.35, 2.45, 48), bronzeMat);
+    outerRing.rotation.x = -Math.PI * 0.5;
+    this.baguaGroup.add(outerRing);
+
+    // 2. Middle decorative ring
+    const midRing = new THREE.Mesh(new THREE.RingGeometry(1.65, 1.72, 40), bronzeMat);
+    midRing.rotation.x = -Math.PI * 0.5;
+    this.baguaGroup.add(midRing);
+
+    // 3. Inner Taiji (Yin-Yang) ring
+    const innerRing = new THREE.Mesh(new THREE.RingGeometry(0.85, 0.95, 32), jadeGlowMat);
+    innerRing.rotation.x = -Math.PI * 0.5;
+    this.baguaGroup.add(innerRing);
+
+    // 4. Eight Trigrams (八卦) carved between middle and outer rings
+    const barGeo = new THREE.BoxGeometry(0.24, 0.01, 0.04);
+    const halfBarGeo = new THREE.BoxGeometry(0.1, 0.01, 0.04);
+
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * Math.PI) / 4;
+      const tGroup = new THREE.Group();
+      tGroup.rotation.y = -angle;
+
+      // 3 parallel bars (solid or broken yin/yang lines)
+      for (let bar = 0; bar < 3; bar++) {
+        const r = 1.9 + bar * 0.16;
+        const isBroken = (i + bar) % 2 === 1;
+        if (isBroken) {
+          const leftHalf = new THREE.Mesh(halfBarGeo, bronzeMat);
+          leftHalf.position.set(-0.07, 0, r);
+          tGroup.add(leftHalf);
+          const rightHalf = new THREE.Mesh(halfBarGeo, bronzeMat);
+          rightHalf.position.set(0.07, 0, r);
+          tGroup.add(rightHalf);
+        } else {
+          const solid = new THREE.Mesh(barGeo, bronzeMat);
+          solid.position.set(0, 0, r);
+          tGroup.add(solid);
+        }
+      }
+      this.baguaGroup.add(tGroup);
+    }
+
+    this.scene.add(this.baguaGroup);
   }
 
   initEntityMeshes() {
@@ -332,6 +422,54 @@ export class ThreePagodaRenderer {
       this.playerHitBeads.push(bead);
     }
 
+    // Hovering Jade Spirit Flying Sword (飞剑 - Classic Wuxia Daoist focus weapon)
+    this.playerSword = new THREE.Group();
+    const bladeGeo = new THREE.BoxGeometry(0.06, 0.68, 0.025);
+    const bladeMat = new THREE.MeshStandardMaterial({
+      color: 0x00ffff,
+      emissive: 0x00e5ff,
+      emissiveIntensity: 1.4,
+      transparent: true,
+      opacity: 0.88,
+      roughness: 0.1
+    });
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.position.y = 0.34;
+    this.playerSword.add(blade);
+
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.16, 4), bladeMat);
+    tip.position.y = 0.76;
+    this.playerSword.add(tip);
+
+    const guardMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 });
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.035, 0.05), guardMat);
+    this.playerSword.add(guard);
+
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 6), guardMat);
+    hilt.position.y = -0.1;
+    this.playerSword.add(hilt);
+
+    this.playerSword.position.set(0.42, 1.35, -0.15);
+    this.playerSword.rotation.x = Math.PI * 0.15;
+    this.playerGroup.add(this.playerSword);
+
+    // Flowing Daoist Silk Twin Sash / Ribbons trailing behind robe
+    this.playerSash = new THREE.Group();
+    const sashMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide });
+
+    const leftRibbon = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.65), sashMat);
+    leftRibbon.position.set(-0.12, -0.28, 0.26);
+    leftRibbon.rotation.x = Math.PI * 0.1;
+    this.playerSash.add(leftRibbon);
+
+    const rightRibbon = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.65), sashMat);
+    rightRibbon.position.set(0.12, -0.28, 0.26);
+    rightRibbon.rotation.x = Math.PI * 0.1;
+    this.playerSash.add(rightRibbon);
+
+    this.playerSash.position.set(0, 0.6, 0);
+    this.playerGroup.add(this.playerSash);
+
     this.scene.add(this.playerGroup);
 
     // 2. Active Enemy Meshes Map (keyed by enemy id/instance)
@@ -401,6 +539,29 @@ export class ThreePagodaRenderer {
         spike.position.set(Math.cos(angle) * 0.52, 3.2, Math.sin(angle) * 0.52);
         group.add(spike);
       }
+
+      // Imperial Dragon Shoulder Pauldrons
+      const pauldronMat = new THREE.MeshStandardMaterial({
+        color: 0x7a111e,
+        metalness: 0.6,
+        roughness: 0.3
+      });
+      const hornMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8 });
+
+      [-1.05, 1.05].forEach((px, idx) => {
+        const pGroup = new THREE.Group();
+        pGroup.position.set(px, 1.9, 0);
+
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.28, 0.5), pauldronMat);
+        pGroup.add(plate);
+
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), hornMat);
+        horn.rotation.z = idx === 0 ? 0.7 : -0.7;
+        horn.position.set(idx === 0 ? -0.22 : 0.22, 0.22, 0);
+        pGroup.add(horn);
+
+        group.add(pGroup);
+      });
 
       // 2s Damage Immunity Spherical Barrier
       const barrierMat = new THREE.MeshStandardMaterial({
@@ -475,6 +636,7 @@ export class ThreePagodaRenderer {
         const talis = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.32), talisMat);
         talis.position.set(0, 1.25, 0.28);
         talis.rotation.x = -0.15;
+        talis.name = "foreheadTalisman";
         group.add(talis);
 
         // Outstretched Arms
@@ -482,6 +644,17 @@ export class ThreePagodaRenderer {
         const arms = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 0.6), armMat);
         arms.position.set(0, 0.9, 0.32);
         group.add(arms);
+
+        // Hanging Qing Official Sleeves (Bounces with hops)
+        const sleeveMat = new THREE.MeshStandardMaterial({ color: 0x162c4a });
+        const leftSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.36, 0.22), sleeveMat);
+        leftSleeve.position.set(-0.35, 0.72, 0.28);
+        leftSleeve.name = "leftSleeve";
+        group.add(leftSleeve);
+        const rightSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.36, 0.22), sleeveMat);
+        rightSleeve.position.set(0.35, 0.72, 0.28);
+        rightSleeve.name = "rightSleeve";
+        group.add(rightSleeve);
 
       } else if (enemy.name === "Resentful Wraith") {
         // Ethereal floating specter (Spectral Violet/Amethyst for zero confusion with player)
@@ -538,6 +711,22 @@ export class ThreePagodaRenderer {
         const scroll = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.12, 0.28), scrollMat);
         scroll.position.set(0, 0.85, 0.35);
         group.add(scroll);
+
+        // Orbiting Skull Spirit Orbs (Triangular rotation)
+        const scribeOrbs = new THREE.Group();
+        scribeOrbs.name = "scribeOrbs";
+        for (let o = 0; o < 3; o++) {
+          const oAngle = (o / 3) * Math.PI * 2;
+          const orbMat = new THREE.MeshStandardMaterial({
+            color: 0xe9d5ff,
+            emissive: 0xa855f7,
+            emissiveIntensity: 1.2
+          });
+          const orb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), orbMat);
+          orb.position.set(Math.cos(oAngle) * 0.65, 1.25, Math.sin(oAngle) * 0.65);
+          scribeOrbs.add(orb);
+        }
+        group.add(scribeOrbs);
       }
     }
 
@@ -699,6 +888,112 @@ export class ThreePagodaRenderer {
         this.floatingTexts.splice(i, 1);
       }
     }
+
+    // 6. Bagua Seal & Spirit Fog Celestial Motion
+    if (this.baguaGroup) {
+      this.baguaGroup.rotation.y += dt * 0.025;
+    }
+    this.spiritFogPlanes.forEach(fp => {
+      fp.mesh.rotation.z += dt * fp.rotSpeed;
+    });
+
+    // 7. Rising Golden Torch Embers
+    this.emberSpawnTimer += dt;
+    if (this.emberSpawnTimer > 0.08 && this.torchEmbers.length < 36) {
+      this.emberSpawnTimer = 0;
+      const cornerPositions = [
+        [-8.6, -8.6], [8.6, -8.6],
+        [-8.6, 8.6], [8.6, 8.6]
+      ];
+      const [bx, bz] = cornerPositions[Math.floor(Math.random() * cornerPositions.length)];
+      const geo = new THREE.DodecahedronGeometry(0.04 + Math.random() * 0.03);
+      const mat = new THREE.MeshBasicMaterial({ color: Math.random() > 0.4 ? 0xffb703 : 0xfb8500 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(bx + (Math.random() - 0.5) * 0.35, 1.45 + Math.random() * 0.2, bz + (Math.random() - 0.5) * 0.35);
+      this.scene.add(mesh);
+      this.torchEmbers.push({
+        mesh,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: 0.75 + Math.random() * 0.85,
+        vz: (Math.random() - 0.5) * 0.35,
+        life: 1.8 + Math.random() * 0.8
+      });
+    }
+
+    for (let i = this.torchEmbers.length - 1; i >= 0; i--) {
+      const ember = this.torchEmbers[i];
+      ember.mesh.position.x += ember.vx * dt;
+      ember.mesh.position.y += ember.vy * dt;
+      ember.mesh.position.z += ember.vz * dt;
+      ember.mesh.scale.multiplyScalar(0.985);
+      ember.life -= dt;
+      if (ember.life <= 0) {
+        this.scene.remove(ember.mesh);
+        ember.mesh.geometry.dispose();
+        this.torchEmbers.splice(i, 1);
+      }
+    }
+
+    // 8. Hit Flash Processing
+    if (this.playerFlashTimer > 0) {
+      this.playerFlashTimer -= dt;
+      if (this.playerFlashTimer <= 0) {
+        this.resetPlayerFlash();
+      }
+    }
+    for (const [mesh, timer] of this.flashingMeshes.entries()) {
+      const newTimer = timer - dt;
+      if (newTimer <= 0) {
+        mesh.traverse(child => {
+          if (child.isMesh && child.material && child.userData.origEmissive) {
+            child.material.emissive.copy(child.userData.origEmissive);
+            child.material.emissiveIntensity = child.userData.origEmissiveIntensity || 0;
+          }
+        });
+        this.flashingMeshes.delete(mesh);
+      } else {
+        this.flashingMeshes.set(mesh, newTimer);
+      }
+    }
+  }
+
+  flashPlayerHit() {
+    this.playerFlashTimer = 0.09;
+    this.playerGroup.traverse(child => {
+      if (child.isMesh && child.material && child.material.emissive) {
+        if (!child.userData.origEmissive) {
+          child.userData.origEmissive = child.material.emissive.clone();
+          child.userData.origEmissiveIntensity = child.material.emissiveIntensity;
+        }
+        child.material.emissive.setHex(0xffffff);
+        child.material.emissiveIntensity = 2.4;
+      }
+    });
+  }
+
+  resetPlayerFlash() {
+    this.playerGroup.traverse(child => {
+      if (child.isMesh && child.material && child.userData.origEmissive) {
+        child.material.emissive.copy(child.userData.origEmissive);
+        child.material.emissiveIntensity = child.userData.origEmissiveIntensity || 0;
+      }
+    });
+  }
+
+  flashEnemyHit(enemy) {
+    const mesh = this.enemyMeshMap.get(enemy);
+    if (!mesh) return;
+    mesh.traverse(child => {
+      if (child.isMesh && child.material && child.material.emissive) {
+        if (!child.userData.origEmissive) {
+          child.userData.origEmissive = child.material.emissive.clone();
+          child.userData.origEmissiveIntensity = child.material.emissiveIntensity;
+        }
+        child.material.emissive.setHex(0xffffff);
+        child.material.emissiveIntensity = 2.4;
+      }
+    });
+    this.flashingMeshes.set(mesh, 0.09);
   }
 
   render(player, enemies, activeFloorInfo) {
@@ -839,6 +1134,19 @@ export class ThreePagodaRenderer {
     this.playerFacingArrow.position.set(player.facing.dx * 0.75, 0.35, player.facing.dy * 0.75);
     this.playerFacingArrow.rotation.z = -angle;
 
+    // Secondary motion: Floating spirit flying sword (飞剑)
+    if (this.playerSword) {
+      const swBob = Math.sin(now * 3.5) * 0.06;
+      this.playerSword.position.y = 1.35 + swBob;
+      this.playerSword.rotation.y = -angle + Math.PI * 0.5;
+    }
+
+    // Secondary motion: Flowing twin silk sash
+    if (this.playerSash) {
+      const sashSway = Math.sin(now * 5.5) * 0.12;
+      this.playerSash.rotation.x = Math.PI * 0.1 + (player.isMoving ? 0.35 : 0) + sashSway;
+    }
+
     // Orbiting Soul Hit Beads
     const hits = player.currentHits;
     this.playerHitBeads.forEach((bead, i) => {
@@ -861,6 +1169,7 @@ export class ThreePagodaRenderer {
 
   syncEnemies(enemies) {
     const activeSet = new Set(enemies);
+    const now = Date.now() / 1000;
 
     // Clean up meshes of deceased enemies
     for (const [enemy, mesh] of this.enemyMeshMap.entries()) {
@@ -895,17 +1204,44 @@ export class ThreePagodaRenderer {
       // 3D Parabolic Hop Animation for Jiangshi
       let hopY = 0;
       if (enemy.name === "Hopping Jiangshi") {
+        const talis = mesh.getObjectByName("foreheadTalisman");
+        const leftSleeve = mesh.getObjectByName("leftSleeve");
+        const rightSleeve = mesh.getObjectByName("rightSleeve");
+
         if (enemy.isMoving) {
           const hopProgress = Math.min(1, Math.max(0, enemy.moveTimer / enemy.moveDuration));
           hopY = Math.sin(hopProgress * Math.PI) * 1.35; // True parabolic jump arc!
           mesh.scale.set(1.0, 1.0, 1.0);
+
+          // Dynamic Talisman Flutter: blows backward in the wind during jump arc
+          if (talis) {
+            talis.rotation.x = -0.15 - Math.sin(hopProgress * Math.PI) * 0.55;
+          }
+          // Sleeve sway with hop
+          if (leftSleeve && rightSleeve) {
+            const slRot = Math.sin(hopProgress * Math.PI) * 0.3;
+            leftSleeve.rotation.x = slRot;
+            rightSleeve.rotation.x = slRot;
+          }
         } else if (enemy.isWindingUp) {
           mesh.scale.set(1.25, 0.68, 1.25); // Windup crouch squish!
+          if (talis) talis.rotation.x = 0.1;
         } else {
           mesh.scale.set(1.0, 1.0, 1.0);
+          if (talis) talis.rotation.x = -0.15;
+          if (leftSleeve && rightSleeve) {
+            leftSleeve.rotation.x = 0;
+            rightSleeve.rotation.x = 0;
+          }
         }
       } else if (enemy.name === "Resentful Wraith") {
         hopY = 0.3 + Math.sin(Date.now() / 250) * 0.12;
+      } else if (enemy.name === "Corpse Scribe") {
+        // Orbiting Skull Spirit Orbs Rotation
+        const orbs = mesh.getObjectByName("scribeOrbs");
+        if (orbs) {
+          orbs.rotation.y = now * 2.2;
+        }
       } else if (enemy.name === "Corpse Emperor") {
         // Boss light position
         this.bossLight.intensity = 2.4;

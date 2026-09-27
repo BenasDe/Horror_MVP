@@ -44,6 +44,9 @@ class BaseEnemy {
   takeDamage(amount = 1) {
     if (!this.alive) return;
     this.hits -= amount;
+    if (window.game && window.game.renderer && window.game.renderer.flashEnemyHit) {
+      window.game.renderer.flashEnemyHit(this);
+    }
     if (this.hits <= 0) {
       this.hits = 0;
       this.alive = false;

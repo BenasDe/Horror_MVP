@@ -118,6 +118,9 @@ class DemonicPagodaGame {
     // Player callbacks
     this.player.onHitTaken = (msg) => {
       this.renderer.triggerShake(8);
+      if (this.renderer.flashPlayerHit) {
+        this.renderer.flashPlayerHit();
+      }
       this.showCombatBanner(msg);
       this.updateHUD();
     };
