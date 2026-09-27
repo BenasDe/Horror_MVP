@@ -71,9 +71,16 @@ export class MarrowFontManager {
   }
 
   generateDrafts() {
-    const allSpells = Object.values(SPELL_CATALOG);
-    // Shuffle and pick 3
-    const shuffled = [...allSpells].sort(() => 0.5 - Math.random());
+    // Pawn's Stride is granted to the cultivator by default; exclude from drafting pool
+    const draftableSpells = Object.values(SPELL_CATALOG).filter(s => s.id !== 'pawn_stride');
+
+    // Prefer offering spells that the player does not currently have equipped
+    const unequipped = draftableSpells.filter(s => {
+      return !this.spellEngine.equippedSpells.some(eq => eq && eq.id === s.id);
+    });
+
+    const pool = unequipped.length >= 3 ? unequipped : draftableSpells;
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
     this.currentDrafts = shuffled.slice(0, 3);
   }
 
