@@ -331,44 +331,97 @@ export class WraithEnemy extends BaseEnemy {
 export class CorpseScribeEnemy extends BaseEnemy {
   constructor(grid, x, y) {
     super(grid, x, y, "Corpse Scribe", 2, 25);
-    this.spellTimer = 1.0;
-    this.actionCooldown = 2.6; // faster casting rotation (was 3.5)
+    this.moveTimer = 0;
+    this.moveCooldown = 1.6; // Repositions and glides every ~1.6s
+    this.boneTimer = 0.6; // Starts casting bones quickly
+    this.boneCooldown = 2.3; // Spawns bone cages way more often (every 2.3s!)
+    this.lanceTimer = 2.0;
+    this.lanceCooldown = 3.6; // Fires bone lance every 3.6s
   }
 
   update(dt, player, enemies) {
     if (!this.alive) return;
     this.updateMovement(dt);
 
-    if (this.isMoving || this.isCasting) {
-      if (this.isCasting) {
-        this.castTimer -= dt;
-        if (this.castTimer <= 0) {
-          this.isCasting = false;
-        }
+    if (this.isCasting) {
+      this.castTimer -= dt;
+      if (this.castTimer <= 0) {
+        this.isCasting = false;
       }
       return;
     }
 
-    this.spellTimer += dt;
-    if (this.spellTimer >= this.actionCooldown) {
-      this.spellTimer = 0;
-      const dist = Math.hypot(player.x - this.x, player.y - this.y);
+    // 1. High-Frequency Bone Spawning
+    this.boneTimer -= dt;
+    if (this.boneTimer <= 0) {
+      this.boneTimer = this.boneCooldown;
+      this.castBoneCage(player);
+      return;
+    }
 
-      // If aligned with player, fire Rook Bone Lance
-      if (player.x === this.x || player.y === this.y) {
-        this.castRookLance(player);
-      } else if (dist <= 3) {
-        // Trap player with Bone Cage
-        this.castBoneCage(player);
-      } else {
-        this.castRookLance(player);
+    // 2. Piercing Bone Lance Attack
+    this.lanceTimer -= dt;
+    if (this.lanceTimer <= 0) {
+      this.lanceTimer = this.lanceCooldown;
+      this.castRookLance(player);
+      return;
+    }
+
+    // 3. Active Scribe Mobility (Glides, flanks, and kites away from close player)
+    if (!this.isMoving) {
+      this.moveTimer += dt;
+      if (this.moveTimer >= this.moveCooldown) {
+        this.moveTimer = 0;
+        this.planScribeMove(player, enemies);
       }
     }
   }
 
+  planScribeMove(player, enemies) {
+    const dist = Math.hypot(player.x - this.x, player.y - this.y);
+    const candidateMoves = [];
+
+    // Cardinal steps
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    dirs.forEach(([dx, dy]) => {
+      const tx = this.x + dx;
+      const ty = this.y + dy;
+      if (this.grid.isWalkable(tx, ty) && !this.isOccupiedByEnemy(tx, ty, enemies)) {
+        const newDist = Math.hypot(player.x - tx, player.y - ty);
+        candidateMoves.push({ x: tx, y: ty, dist: newDist });
+      }
+    });
+
+    if (candidateMoves.length === 0) return;
+
+    let chosen;
+    if (dist <= 2.5) {
+      // Kite: pick move that maximizes distance away from player
+      candidateMoves.sort((a, b) => b.dist - a.dist);
+      chosen = candidateMoves[0];
+    } else {
+      // Pick random valid step to keep moving actively
+      chosen = candidateMoves[Math.floor(Math.random() * candidateMoves.length)];
+    }
+
+    if (chosen) {
+      this.fromX = this.x;
+      this.fromY = this.y;
+      this.toX = chosen.x;
+      this.toY = chosen.y;
+      this.isMoving = true;
+      this.moveTimer = 0;
+      this.moveDuration = 0.32; // smooth eerie glide
+    }
+  }
+
+  isOccupiedByEnemy(x, y, enemies) {
+    return enemies.some(e => e !== this && e.alive && e.x === x && e.y === y);
+  }
+
   castRookLance(player) {
     this.isCasting = true;
-    this.castTimer = 0.8;
+    this.castTimer = 0.75;
 
     // Orthogonal line along same row or col towards player
     const dx = Math.sign(player.x - this.x);
@@ -383,7 +436,7 @@ export class CorpseScribeEnemy extends BaseEnemy {
       const ty = this.y + stepY * s;
       if (!this.grid.isInBounds(tx, ty)) break;
 
-      this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 0.8, 'enemy', (px, py) => {
+      this.grid.telegraphTile(tx, ty, TILE_STATUS.DAMAGING, 0.85, 'enemy', (px, py) => {
         if (px === player.x && py === player.y) {
           player.takeDamage(false, "Scribe's Bone Lance");
         }
@@ -393,7 +446,7 @@ export class CorpseScribeEnemy extends BaseEnemy {
 
   castBoneCage(player) {
     this.isCasting = true;
-    this.castTimer = 0.55;
+    this.castTimer = 0.50;
 
     // Surround player with Inaccessible bone pillars
     const cardinals = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -401,9 +454,11 @@ export class CorpseScribeEnemy extends BaseEnemy {
       const tx = player.x + ox;
       const ty = player.y + oy;
       if (this.grid.isInBounds(tx, ty)) {
-        this.grid.telegraphTile(tx, ty, TILE_STATUS.INACCESSIBLE, 0.55, 'enemy');
+        this.grid.telegraphTile(tx, ty, TILE_STATUS.INACCESSIBLE, 0.50, 'enemy');
       }
     });
+
+    horrorAudio.playSpellDetonation(0.8);
   }
 }
 
