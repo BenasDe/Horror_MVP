@@ -414,8 +414,9 @@ export class CorpseEmperorBoss extends BaseEnemy {
     this.phase = 1;
     this.attackTimer = 2.2; // initial prep time before first attack
     this.attackCycle = 0;
-    this.moveCooldown = 2.6; // active movement interval
+    this.moveCooldown = 1.2; // 2x faster movement frequency (moves every ~1.3s - 1.7s)
     this.invulnerableTimer = 0; // 2s damage immunity after each hit
+    this.spawnTimer = 6.0; // spawns 1 minion every 6s
     this.thrones = [
       [2, 2], [6, 2], [2, 6], [6, 6],
       [4, 2], [4, 4], [4, 6], [2, 4], [6, 4]
@@ -443,6 +444,19 @@ export class CorpseEmperorBoss extends BaseEnemy {
     if (this.hits <= 0) {
       this.hits = 0;
       this.alive = false;
+
+      // Disintegrate all minions when the Emperor falls
+      if (window.game && window.game.enemies) {
+        window.game.enemies.forEach(e => {
+          if (e !== this && e.alive) {
+            e.alive = false;
+            if (window.game.renderer) {
+              window.game.renderer.spawnBloodParticles(e.renderX + 35, e.renderY + 35, 16);
+            }
+          }
+        });
+      }
+
       return true;
     }
     return false;
@@ -459,8 +473,15 @@ export class CorpseEmperorBoss extends BaseEnemy {
     // Process movement interpolation and damaging tiles check
     this.updateMovement(dt);
 
-    // Active boss movement AI
+    // Active boss movement AI (2x frequency)
     this.updateBossMovement(dt, player);
+
+    // Spawn 1 minion every 6s
+    this.spawnTimer -= dt;
+    if (this.spawnTimer <= 0) {
+      this.spawnTimer = 6.0;
+      this.spawnMinion(enemies, player);
+    }
 
     // Attack cooldown (well-paced, giving player room to move)
     this.attackTimer -= dt;
@@ -468,6 +489,54 @@ export class CorpseEmperorBoss extends BaseEnemy {
       this.attackTimer = 4.0; // 4.0s paced attack cycle
       this.executeBossAttack(player);
     }
+  }
+
+  spawnMinion(enemies, player) {
+    let ex = 0;
+    let ey = 0;
+    let found = false;
+    const occupied = new Set();
+    if (player) occupied.add(`${player.x},${player.y}`);
+    occupied.add(`${this.x},${this.y}`);
+    enemies.forEach(e => {
+      if (e.alive) occupied.add(`${e.x},${e.y}`);
+    });
+
+    for (let attempts = 0; attempts < 40; attempts++) {
+      const rx = Math.floor(Math.random() * this.grid.cols);
+      const ry = Math.floor(Math.random() * this.grid.rows);
+      if (!occupied.has(`${rx},${ry}`) && this.grid.isWalkable(rx, ry)) {
+        ex = rx;
+        ey = ry;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) return null;
+
+    // Pick random minion type: Jiangshi, Wraith, or Scribe
+    const roll = Math.random();
+    let minion;
+    if (roll < 0.40) {
+      minion = new JiangshiEnemy(this.grid, ex, ey);
+    } else if (roll < 0.75) {
+      minion = new WraithEnemy(this.grid, ex, ey);
+    } else {
+      minion = new CorpseScribeEnemy(this.grid, ex, ey);
+    }
+
+    enemies.push(minion);
+
+    // Visual & audio feedback
+    horrorAudio.playSpellDetonation(1.2);
+    if (window.game && window.game.renderer) {
+      const p = this.grid.gridToPixel(ex, ey);
+      window.game.renderer.spawnBloodParticles(p.x + 38, p.y + 38, 24);
+      window.game.renderer.addFloatingText(`💀 ${minion.name.toUpperCase()} SUMMONED`, p.x + 38, p.y + 20, '#ff334b', 12);
+    }
+
+    return minion;
   }
 
   updateBossMovement(dt, player) {
@@ -485,24 +554,24 @@ export class CorpseEmperorBoss extends BaseEnemy {
       if (availableThrones.length > 0) {
         const [nextX, nextY] = availableThrones[Math.floor(Math.random() * availableThrones.length)];
         
-        // Brief telegraph at landing site
-        this.grid.telegraphTile(nextX, nextY, TILE_STATUS.DAMAGING, 0.6, 'enemy', (tx, ty) => {
+        // Brief telegraph at landing site (snappy 0.45s telegraph)
+        this.grid.telegraphTile(nextX, nextY, TILE_STATUS.DAMAGING, 0.45, 'enemy', (tx, ty) => {
           if (tx === player.x && ty === player.y) {
             player.takeDamage(false, "Emperor's Imperial Stomp");
           }
         });
 
-        // Initiate leap/reposition
+        // Initiate leap/reposition (snappy 0.28s move, resets cooldown to 1.3 - 1.7s)
         this.isMoving = true;
         this.fromX = this.x;
         this.fromY = this.y;
         this.toX = nextX;
         this.toY = nextY;
         this.moveTimer = 0;
-        this.moveDuration = 0.45;
-        this.moveCooldown = 2.8 + Math.random() * 0.8;
+        this.moveDuration = 0.28;
+        this.moveCooldown = 1.3 + Math.random() * 0.4;
       } else {
-        this.moveCooldown = 1.5;
+        this.moveCooldown = 0.8;
       }
     }
   }

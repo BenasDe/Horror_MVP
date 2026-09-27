@@ -102,9 +102,20 @@ export class LevelGenerator {
     const enemies = [];
 
     if (floorNum === 26) {
-      // Floor 26 Boss
+      // Floor 26 Boss + 1 random minion at start
       const boss = new CorpseEmperorBoss(grid, 4, 2);
       enemies.push(boss);
+
+      // Start fight with 1 random enemy (Jiangshi, Wraith, or Scribe)
+      const startSpots = [[2, 4], [6, 4], [3, 5], [5, 5]];
+      const [sx, sy] = startSpots[Math.floor(Math.random() * startSpots.length)];
+      const roll = Math.random();
+      let minion;
+      if (roll < 0.40) minion = new JiangshiEnemy(grid, sx, sy);
+      else if (roll < 0.75) minion = new WraithEnemy(grid, sx, sy);
+      else minion = new CorpseScribeEnemy(grid, sx, sy);
+      enemies.push(minion);
+
       return enemies;
     }
 
