@@ -71,6 +71,8 @@ export class Player {
     this.renderX = p.x;
     this.renderY = p.y;
     this.queensRuinCheck = null;
+    this.isInvulnerable = false;
+    this.invulnTimer = 0;
     this.cancelCasting();
   }
 
@@ -159,6 +161,7 @@ export class Player {
   }
 
   cancelCasting() {
+    horrorAudio.stopSpellChannel();
     this.isCasting = false;
     this.castElapsed = 0;
     this.castDuration = 0;
@@ -167,7 +170,7 @@ export class Player {
   }
 
   takeDamage(ignoreShield = false, source = "Corpse Attack") {
-    if (this.isInvulnerable) return;
+    if (this.currentHits <= 0 || this.isInvulnerable) return;
 
     // Check if standing on a Shielded tile
     if (!ignoreShield && this.grid.isShielded(this.x, this.y)) {
@@ -184,6 +187,8 @@ export class Player {
 
     if (this.currentHits <= 0) {
       this.currentHits = 0;
+      this.cancelCasting();
+      this.queensRuinCheck = null;
       if (this.onDeath) this.onDeath(source);
     } else {
       // Trigger i-frames
@@ -194,6 +199,7 @@ export class Player {
   }
 
   update(dt, enemies = []) {
+    if (this.currentHits <= 0) return;
     // 1. Update movement interpolation
     if (this.isMoving) {
       this.moveTimer += dt;
@@ -229,6 +235,9 @@ export class Player {
       }
     }
 
+    // Death can occur during the movement/hazard check above.
+    if (this.currentHits <= 0) return;
+
     // 2. Update Casting progress (Channeling root)
     if (this.isCasting) {
       this.castElapsed += dt;
@@ -238,10 +247,9 @@ export class Player {
       }
 
       if (this.castElapsed >= this.castDuration) {
-        this.isCasting = false;
-        if (this.onCastFinish) {
-          this.onCastFinish();
-        }
+        const onComplete = this.onCastFinish;
+        this.cancelCasting();
+        if (onComplete) onComplete();
       }
     }
 

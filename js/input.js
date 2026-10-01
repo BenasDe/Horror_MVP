@@ -6,23 +6,68 @@
 import { horrorAudio } from './audio.js';
 
 export class InputHandler {
-  constructor(canvas, { onCast, onMoveImmediate }) {
+  constructor(canvas, { onCast, onMoveImmediate, canAcceptInput = () => true, onMenu, onFocusLost }) {
     this.canvas = canvas;
     this.onCast = onCast;
     this.onMoveImmediate = onMoveImmediate;
+    this.canAcceptInput = canAcceptInput;
+    this.onMenu = onMenu;
+    this.onFocusLost = onFocusLost;
     this.keysDown = {};
     this.touchDirection = null;
+    this.touchStart = null;
+    this.dpadButtons = [];
 
     this.bindKeyboard();
     this.bindDPad();
     this.bindTouchSwipe();
+    window.addEventListener('blur', () => this.handleFocusLost());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.handleFocusLost();
+    });
+    window.addEventListener('pointerup', () => this.releaseDPad());
+    window.addEventListener('pointercancel', () => this.resetTouch());
+  }
+
+  releaseDPad() {
+    this.touchDirection = null;
+    this.dpadButtons.forEach(btn => btn.classList.remove('active'));
+  }
+
+  resetTouch() {
+    this.releaseDPad();
+    this.touchStart = null;
+  }
+
+  reset() {
+    this.keysDown = {};
+    this.resetTouch();
+  }
+
+  handleFocusLost() {
+    this.reset();
+    if (this.onFocusLost) this.onFocusLost();
   }
 
   bindKeyboard() {
     window.addEventListener('keydown', (e) => {
+      if (e.target?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName)) return;
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        if (!e.repeat && this.onMenu) this.onMenu();
+        return;
+      }
+      if (!this.canAcceptInput()) return;
+      const movementKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+      const spellKeys = ['Digit1', 'KeyQ', 'Digit2', 'KeyE', 'Digit3', 'KeyR', 'Digit4', 'Space'];
+      if (!movementKeys.includes(e.code) && !spellKeys.includes(e.code)) return;
+      e.preventDefault();
+      // A held key cleared by pausing must be released and pressed again.
+      if (e.repeat && !this.keysDown[e.code]) return;
       this.keysDown[e.code] = true;
 
       // Spell triggers
+      if (e.repeat) return;
       if (e.code === 'Digit1' || e.code === 'KeyQ') this.onCast(0);
       else if (e.code === 'Digit2' || e.code === 'KeyE') this.onCast(1);
       else if (e.code === 'Digit3' || e.code === 'KeyR') this.onCast(2);
@@ -45,8 +90,10 @@ export class InputHandler {
     dpadButtons.forEach(({ id, dx, dy }) => {
       const btn = document.getElementById(id);
       if (!btn) return;
+      this.dpadButtons.push(btn);
 
       const handlePress = (e) => {
+        if (!this.canAcceptInput()) return;
         if (e.cancelable) e.preventDefault();
         horrorAudio.ensureContext();
         btn.classList.add('active');
@@ -71,21 +118,19 @@ export class InputHandler {
   }
 
   bindTouchSwipe() {
-    let touchStartX = 0;
-    let touchStartY = 0;
-
     this.canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 0) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+      if (this.canAcceptInput() && e.touches.length > 0) {
+        this.touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         horrorAudio.ensureContext();
       }
     }, { passive: true });
 
     this.canvas.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length > 0) {
-        const deltaX = e.changedTouches[0].clientX - touchStartX;
-        const deltaY = e.changedTouches[0].clientY - touchStartY;
+      const start = this.touchStart;
+      this.touchStart = null;
+      if (this.canAcceptInput() && start && e.changedTouches.length > 0) {
+        const deltaX = e.changedTouches[0].clientX - start.x;
+        const deltaY = e.changedTouches[0].clientY - start.y;
         const absX = Math.abs(deltaX);
         const absY = Math.abs(deltaY);
         const swipeThreshold = 24;
@@ -101,9 +146,11 @@ export class InputHandler {
         }
       }
     }, { passive: true });
+    this.canvas.addEventListener('touchcancel', () => { this.touchStart = null; }, { passive: true });
   }
 
   getMovementVector() {
+    if (!this.canAcceptInput()) return { dx: 0, dy: 0 };
     let dx = 0;
     let dy = 0;
 

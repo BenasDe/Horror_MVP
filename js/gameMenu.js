@@ -8,6 +8,8 @@ import { horrorAudio } from './audio.js';
 export class GameMenuModal {
   constructor(game) {
     this.game = game;
+    this.isOpen = false;
+    this.pausedGameplay = false;
     this.modalEl = document.getElementById('game-menu-modal');
     this.btnClose = document.getElementById('btn-close-game-menu');
     this.btnAudioToggle = document.getElementById('btn-audio-toggle');
@@ -39,7 +41,7 @@ export class GameMenuModal {
     if (this.btnRestartCp) {
       this.btnRestartCp.addEventListener('click', () => {
         horrorAudio.ensureContext();
-        this.close();
+        this.close(false);
         this.game.reviveAtCheckpoint();
       });
     }
@@ -63,13 +65,23 @@ export class GameMenuModal {
   }
 
   open() {
-    if (!this.modalEl) return;
+    if (!this.modalEl || this.isOpen) return;
     horrorAudio.ensureContext();
+    this.isOpen = true;
+    this.pausedGameplay = this.game.pause() || this.game.gameState === 'PAUSED';
+    this.game.input.reset();
+    this.btnClose.textContent = this.pausedGameplay ? 'RESUME ASCENSION' : 'CLOSE GUIDE';
+    this.btnRestartCp.disabled = this.game.gameState === 'TITLE' || this.game.gameState === 'VICTORY';
     this.modalEl.classList.remove('hidden');
   }
 
-  close() {
+  close(resumeGameplay = true) {
     if (!this.modalEl) return;
+    if (resumeGameplay && this.pausedGameplay && document.hidden) return;
     this.modalEl.classList.add('hidden');
+    const shouldResume = resumeGameplay && this.pausedGameplay;
+    this.isOpen = false;
+    this.pausedGameplay = false;
+    if (shouldResume) this.game.resume();
   }
 }

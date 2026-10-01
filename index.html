@@ -166,9 +166,11 @@
         </div>
 
         <div class="start-actions">
+          <button id="btn-continue-game" class="gothic-btn pulse-glow hidden">CONTINUE FROM CHECKPOINT</button>
           <button id="btn-start-game" class="gothic-btn pulse-glow">AWAKEN ROGUE SOUL</button>
           <button type="button" id="btn-title-guide" class="gothic-btn test-select-btn">📜 HOW TO PLAY</button>
         </div>
+        <p id="checkpoint-status" class="checkpoint-status" role="status">Sanctuary checkpoints are saved in this browser.</p>
       </div>
     </div>
 
@@ -435,8 +437,9 @@
             <div class="guide-card">
               <div class="guide-card-title text-cyan">📍 Ascension Checkpoints</div>
               <div class="guide-card-body">
-                <p>Each Sanctuary reached saves a permanent <strong>Ascension Checkpoint</strong>.</p>
+                <p>Each Sanctuary saves an <strong>Ascension Checkpoint</strong> in this browser, including upgrades, talismans, and remaining draft offers. Reload and choose <strong>Continue</strong> to return to it.</p>
                 <p>If your soul is extinguished on higher floors, you can revive right at your last checkpoint with all upgrades intact!</p>
+                <p><strong>New Run</strong> replaces the old checkpoint; victory clears it. If browser storage is unavailable, checkpoints last for the current session only.</p>
               </div>
             </div>
 
@@ -473,4 +476,3 @@
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
-
