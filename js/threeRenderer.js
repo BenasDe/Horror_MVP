@@ -672,6 +672,59 @@ export class ThreePagodaRenderer {
     this.screenShake = intensity;
   }
 
+  disposeTransientMesh(root) {
+    const geometries = new Set();
+    const materials = new Set();
+    const sharedMaterials = new Set([this.boneMat, this.jadeMat, this.crimsonMat, this.wardMat]);
+    root.traverse(child => {
+      if (child.geometry) geometries.add(child.geometry);
+      const childMaterials = Array.isArray(child.material) ? child.material : [child.material];
+      childMaterials.forEach(material => {
+        if (material && !sharedMaterials.has(material)) materials.add(material);
+      });
+    });
+    geometries.forEach(geometry => geometry.dispose());
+    materials.forEach(material => material.dispose());
+  }
+
+  resetTransientState() {
+    this.screenShake = 0;
+    this.shakeOffset.set(0, 0, 0);
+    this.camera.position.copy(this.baseCameraPos);
+    this.camera.lookAt(this.cameraTarget);
+    this.bossLight.intensity = 0;
+    this.playerFlashTimer = 0;
+    this.resetPlayerFlash();
+    this.playerGroup.visible = true;
+    this.playerGroundRing.material.color.setHex(0x00f0ff);
+    for (const mesh of this.flashingMeshes.keys()) {
+      this.restoreMeshFlash(mesh);
+    }
+    this.flashingMeshes.clear();
+    for (const mesh of this.enemyMeshMap.values()) {
+      this.scene.remove(mesh);
+      this.disposeTransientMesh(mesh);
+    }
+    this.enemyMeshMap.clear();
+    for (const particles of [this.bloodParticles, this.boneDebris, this.torchEmbers]) {
+      for (const particle of particles) {
+        this.scene.remove(particle.mesh);
+        this.disposeTransientMesh(particle.mesh);
+      }
+      particles.length = 0;
+    }
+    this.floatingTexts.length = 0;
+    this.emberSpawnTimer = 0;
+    for (const row of this.tileMeshes) {
+      for (const holder of row) {
+        this.disposeTransientMesh(holder.overlayGroup);
+        holder.overlayGroup.clear();
+        holder.cacheKey = null;
+      }
+    }
+    if (this.textCtx) this.textCtx.clearRect(0, 0, 760, 760);
+  }
+
   addFloatingText(text, x, y, color = '#ff334b', size = 13) {
     // Project 2D screen coordinate or grid position
     this.floatingTexts.push({
@@ -780,6 +833,7 @@ export class ThreePagodaRenderer {
       if (p.life <= 0) {
         this.scene.remove(p.mesh);
         p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
         this.bloodParticles.splice(i, 1);
       }
     }
@@ -860,6 +914,7 @@ export class ThreePagodaRenderer {
       if (ember.life <= 0) {
         this.scene.remove(ember.mesh);
         ember.mesh.geometry.dispose();
+        ember.mesh.material.dispose();
         this.torchEmbers.splice(i, 1);
       }
     }
@@ -874,12 +929,7 @@ export class ThreePagodaRenderer {
     for (const [mesh, timer] of this.flashingMeshes.entries()) {
       const newTimer = timer - dt;
       if (newTimer <= 0) {
-        mesh.traverse(child => {
-          if (child.isMesh && child.material && child.userData.origEmissive) {
-            child.material.emissive.copy(child.userData.origEmissive);
-            child.material.emissiveIntensity = child.userData.origEmissiveIntensity || 0;
-          }
-        });
+        this.restoreMeshFlash(mesh);
         this.flashingMeshes.delete(mesh);
       } else {
         this.flashingMeshes.set(mesh, newTimer);
@@ -902,7 +952,11 @@ export class ThreePagodaRenderer {
   }
 
   resetPlayerFlash() {
-    this.playerGroup.traverse(child => {
+    this.restoreMeshFlash(this.playerGroup);
+  }
+
+  restoreMeshFlash(mesh) {
+    mesh.traverse(child => {
       if (child.isMesh && child.material && child.userData.origEmissive) {
         child.material.emissive.copy(child.userData.origEmissive);
         child.material.emissiveIntensity = child.userData.origEmissiveIntensity || 0;
@@ -959,10 +1013,10 @@ export class ThreePagodaRenderer {
           holder.cacheKey = statusKey;
 
           // Clear old child objects
+          this.disposeTransientMesh(group);
           while (group.children.length > 0) {
             const child = group.children[0];
             group.remove(child);
-            if (child.geometry) child.geometry.dispose();
           }
 
           // A. Bone Obstacle (Inaccessible)
@@ -1114,11 +1168,15 @@ export class ThreePagodaRenderer {
   syncEnemies(enemies) {
     const activeSet = new Set(enemies);
     const now = Date.now() / 1000;
+    this.bossLight.intensity = 0;
 
     // Clean up meshes of deceased enemies
     for (const [enemy, mesh] of this.enemyMeshMap.entries()) {
       if (!activeSet.has(enemy) || !enemy.alive) {
+        this.restoreMeshFlash(mesh);
+        this.flashingMeshes.delete(mesh);
         this.scene.remove(mesh);
+        this.disposeTransientMesh(mesh);
         this.enemyMeshMap.delete(enemy);
       }
     }

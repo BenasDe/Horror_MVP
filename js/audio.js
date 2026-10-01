@@ -4,10 +4,12 @@
  * Zero external asset dependencies - completely self-contained!
  */
 
-class HorrorAudioEngine {
+export class HorrorAudioEngine {
   constructor() {
     this.ctx = null;
     this.isMuted = false;
+    this.masterGain = null;
+    this.activeChannel = null;
     this.droneGain = null;
     this.droneOsc1 = null;
     this.droneOsc2 = null;
@@ -19,6 +21,9 @@ class HorrorAudioEngine {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioContext();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
+      this.masterGain.connect(this.ctx.destination);
       this.initialized = true;
       this.startAmbientDrone();
     } catch (e) {
@@ -38,8 +43,8 @@ class HorrorAudioEngine {
   toggleMute() {
     this.ensureContext();
     this.isMuted = !this.isMuted;
-    if (this.droneGain && this.ctx) {
-      this.droneGain.gain.setValueAtTime(this.isMuted ? 0 : 0.06, this.ctx.currentTime);
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
     }
     return this.isMuted;
   }
@@ -68,7 +73,7 @@ class HorrorAudioEngine {
     this.droneOsc1.connect(filter);
     this.droneOsc2.connect(filter);
     filter.connect(this.droneGain);
-    this.droneGain.connect(this.ctx.destination);
+    this.droneGain.connect(this.masterGain);
 
     this.droneOsc1.start();
     this.droneOsc2.start();
@@ -91,7 +96,7 @@ class HorrorAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 3.0);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start(t);
     osc.stop(t + 3.0);
@@ -114,7 +119,7 @@ class HorrorAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start(t);
     osc.stop(t + 0.2);
@@ -137,7 +142,7 @@ class HorrorAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start(t);
     osc.stop(t + 0.08);
@@ -146,7 +151,8 @@ class HorrorAudioEngine {
   // Spell Priming / Channeling Sound (Rising frequency tension)
   startSpellChannel(durationSeconds) {
     this.ensureContext();
-    if (!this.ctx) return null;
+    this.stopSpellChannel();
+    if (!this.ctx || this.isMuted || durationSeconds <= 0) return null;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -166,12 +172,29 @@ class HorrorAudioEngine {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start(t);
     osc.stop(t + durationSeconds);
 
-    return { osc, gain };
+    const channel = { osc, gain, filter };
+    this.activeChannel = channel;
+    osc.onended = () => {
+      osc.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+      if (this.activeChannel === channel) this.activeChannel = null;
+    };
+    return channel;
+  }
+
+  stopSpellChannel() {
+    const channel = this.activeChannel;
+    if (!channel) return;
+    this.activeChannel = null;
+    channel.gain.gain.cancelScheduledValues(this.ctx.currentTime);
+    channel.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+    try { channel.osc.stop(); } catch { /* Already ended. */ }
   }
 
   // Spell Detonation / Status Eruption
@@ -191,7 +214,7 @@ class HorrorAudioEngine {
     subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
 
     subOsc.connect(subGain);
-    subGain.connect(this.ctx.destination);
+    subGain.connect(this.masterGain);
 
     // Burst noise
     const bufferSize = this.ctx.sampleRate * 0.3;
@@ -212,7 +235,7 @@ class HorrorAudioEngine {
 
     noise.connect(filter);
     filter.connect(noiseGain);
-    noiseGain.connect(this.ctx.destination);
+    noiseGain.connect(this.masterGain);
 
     subOsc.start(t);
     subOsc.stop(t + 0.5);
@@ -237,7 +260,7 @@ class HorrorAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start(t);
     osc.stop(t + 0.35);
@@ -260,7 +283,7 @@ class HorrorAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start(t);
     osc.stop(t + 0.25);
@@ -284,7 +307,7 @@ class HorrorAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start(t);
     osc.stop(t + 0.3);

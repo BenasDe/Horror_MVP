@@ -42,6 +42,25 @@ Spells and enemy abilities alter grid tile statuses in specific patterns:
 - **Cast Spell 3**: `3` or `R` (Default: *Tortoise Sanctuary*)
 - **Cast Spell 4**: `4` or `Space` (Default: *Queen's Ruin*)
 - **Interact / Shop**: Mouse click on Altar upgrades and Talisman draft cards
+- **Pause / Resume**: `Escape` or the Game Menu. Movement, casts, enemies, hazards, and the floor-clear timer freeze while paused. Losing focus or hiding the tab also pauses combat; close the menu to resume.
+
+## Checkpoints and New Runs
+
+Reaching Floors 5, 10, 15, 20, or 25 saves a sanctuary checkpoint in browser `localStorage`. Purchases update the save immediately. Checkpoints store player upgrades, marrow, kills, equipped spell IDs, upgrade prices, and the remaining draft offers. Continuing restores full health and Qi at that sanctuary; it does not resume midway through a combat floor or reroll the draft.
+
+After reloading, choose **Continue from Floor …** on the title screen. **New Run (Floor 1)**, **Restart from Floor 1**, and **Play Again** reset the entire run and replace any previous checkpoint. Victory clears the completed run's checkpoint. Saves belong to the current browser and origin; use the same server address when returning. Clearing site data removes the save.
+
+Saves are versioned and validated. Damaged or incompatible saves are ignored. If browser storage is blocked or full, the game keeps a checkpoint in memory for the current session and displays that limitation. Sound OFF mutes all audio, including channeling and sounds already playing.
+
+## Regression Tests
+
+With Node.js 20 or later, run:
+
+```bash
+npm test
+```
+
+The tests use Node's built-in test runner and require no package installation. They cover checkpoint validation and reloads, new-run resets, pauses during movement and casting, focus loss, input cancellation, storage failures, terminal-state transitions, audio routing, and renderer cleanup. Gameplay still runs as a static site; no build step is needed.
 
 ---
 

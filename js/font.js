@@ -7,10 +7,11 @@ import { SPELL_CATALOG } from './config.js';
 import { horrorAudio } from './audio.js';
 
 export class MarrowFontManager {
-  constructor(player, spellEngine, onAscend) {
+  constructor(player, spellEngine, onAscend, onChange = null) {
     this.player = player;
     this.spellEngine = spellEngine;
     this.onAscend = onAscend;
+    this.onChange = onChange;
 
     // Upgrade pricing & level tracking
     this.upgradeCosts = {
@@ -51,13 +52,14 @@ export class MarrowFontManager {
     });
   }
 
-  open(floorNumber) {
+  open(floorNumber, drafts = null) {
     // 1. Fully restore player hits and stamina
     this.player.restoreFull();
     horrorAudio.playGong(false);
 
     // 2. Generate 3 random spell drafts
-    this.generateDrafts();
+    if (drafts !== null) this.currentDrafts = drafts.map(spell => ({ ...spell }));
+    else this.generateDrafts();
 
     // 3. Update UI displays
     this.updateUI();
@@ -68,6 +70,12 @@ export class MarrowFontManager {
 
   close() {
     this.modal.classList.add('hidden');
+  }
+
+  reset() {
+    this.close();
+    this.upgradeCosts = { health: 40, agility: 25, stamina: 20 };
+    this.currentDrafts = [];
   }
 
   generateDrafts() {
@@ -106,9 +114,7 @@ export class MarrowFontManager {
     this.renderDraftCards();
 
     // Auto-save checkpoint state at font
-    if (window.game && window.game.saveCheckpoint) {
-      window.game.saveCheckpoint(window.game.currentFloor);
-    }
+    if (this.onChange) this.onChange();
   }
 
   renderDraftCards() {

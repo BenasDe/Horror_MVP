@@ -3,7 +3,8 @@
  * Master Game Loop, Input Controller, and Floor State Machine
  */
 
-import { FLOORS_CONFIG, INITIAL_PLAYER_STATS } from './config.js';
+import { FLOORS_CONFIG, INITIAL_PLAYER_STATS, SPELL_CATALOG } from './config.js';
+import { CHECKPOINT_VERSION, CheckpointStore, validateCheckpoint } from './checkpoint.js';
 import { horrorAudio } from './audio.js';
 import { PagodaGrid } from './grid.js';
 import { Player } from './player.js';
@@ -14,30 +15,45 @@ import { LevelGenerator } from './levelGenerator.js';
 import { GameMenuModal } from './gameMenu.js';
 import { InputHandler } from './input.js';
 
-class DemonicPagodaGame {
-  constructor() {
+export class DemonicPagodaGame {
+  constructor({ createRenderer = (canvas, grid) => new ThreePagodaRenderer(canvas, grid), checkpointStore = new CheckpointStore() } = {}) {
     this.canvas = document.getElementById('gameCanvas');
     this.grid = new PagodaGrid();
-    this.renderer = new ThreePagodaRenderer(this.canvas, this.grid);
+    this.renderer = createRenderer(this.canvas, this.grid);
     this.player = new Player(this.grid);
     this.spellEngine = new SpellEngine(this.grid);
 
     this.currentFloor = 1;
     this.lastCheckpointFloor = 1;
     this.savedCheckpointState = null;
-    this.gameState = 'TITLE'; // 'TITLE', 'PLAYING', 'SAFE_FONT', 'GAME_OVER', 'VICTORY'
+    this.checkpointStore = checkpointStore;
+    this.checkpointPersisted = false;
+    this.gameState = 'TITLE'; // 'TITLE', 'PLAYING', 'PAUSED', 'SAFE_FONT', 'GAME_OVER', 'VICTORY'
     this.enemies = [];
     this.totalKills = 0;
     this.floorClearTimer = 0;
+    this.rewardedEnemies = new Set();
 
     this.initMarrowFont();
     this.gameMenu = new GameMenuModal(this);
     this.input = new InputHandler(this.canvas, {
       onCast: (slot) => this.triggerSpellCast(slot),
-      onMoveImmediate: (dx, dy) => this.handleMoveImmediate(dx, dy)
+      onMoveImmediate: (dx, dy) => this.handleMoveImmediate(dx, dy),
+      canAcceptInput: () => this.gameState === 'PLAYING',
+      onMenu: () => this.gameMenu.isOpen ? this.gameMenu.close() : this.gameMenu.open(),
+      onFocusLost: () => {
+        if (this.gameState === 'PLAYING') this.gameMenu.open();
+      }
     });
 
     this.bindDOM();
+    this.savedCheckpointState = this.checkpointStore.load();
+    if (this.savedCheckpointState) {
+      this.lastCheckpointFloor = this.savedCheckpointState.floor;
+      this.checkpointPersisted = true;
+    }
+    this.updateContinueButton();
+    this.updateHUD();
 
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.gameLoop(t));
@@ -45,7 +61,10 @@ class DemonicPagodaGame {
 
   initMarrowFont() {
     this.fontManager = new MarrowFontManager(this.player, this.spellEngine, () => {
-      this.advanceFloor();
+      if (this.gameState === 'SAFE_FONT') this.advanceFloor();
+    }, () => {
+      this.updateHUD();
+      this.saveCheckpoint(this.currentFloor);
     });
   }
 
@@ -70,12 +89,18 @@ class DemonicPagodaGame {
 
     this.btnRestart = document.getElementById('btn-restart');
     this.btnRestartFloor1 = document.getElementById('btn-restart-floor1');
+    this.btnContinue = document.getElementById('btn-continue-game');
+    this.checkpointStatus = document.getElementById('checkpoint-status');
 
     // Title Start Button
     document.getElementById('btn-start-game').addEventListener('click', () => {
       horrorAudio.ensureContext();
-      this.titleModal.classList.add('hidden');
-      this.startGame();
+      this.startNewRun();
+    });
+
+    this.btnContinue.addEventListener('click', () => {
+      horrorAudio.ensureContext();
+      this.restoreCheckpoint();
     });
 
     // Checkpoint Restart Button
@@ -90,8 +115,7 @@ class DemonicPagodaGame {
 
     // Play Again Button
     document.getElementById('btn-play-again').addEventListener('click', () => {
-      this.victoryModal.classList.add('hidden');
-      this.startGame();
+      this.startNewRun();
     });
 
     // Game Menu & Guide Buttons
@@ -154,8 +178,49 @@ class DemonicPagodaGame {
     }, duration * 1000);
   }
 
-  startGame() {
+  pause() {
+    if (this.gameState !== 'PLAYING') return false;
+    this.gameState = 'PAUSED';
+    this.input.reset();
+    horrorAudio.stopSpellChannel();
+    return true;
+  }
+
+  resume() {
+    if (this.gameState !== 'PAUSED' || document.hidden) return;
+    this.input.reset();
+    this.lastTime = performance.now();
+    this.gameState = 'PLAYING';
+    if (this.player.isCasting) {
+      horrorAudio.startSpellChannel(this.player.castDuration - this.player.castElapsed);
+    }
+  }
+
+  updateContinueButton() {
+    const checkpoint = this.savedCheckpointState;
+    this.btnContinue.classList.toggle('hidden', !checkpoint);
+    document.getElementById('btn-start-game').textContent = checkpoint ? 'NEW RUN (FLOOR 1)' : 'AWAKEN ROGUE SOUL';
+    if (checkpoint) {
+      this.btnContinue.textContent = `CONTINUE FROM FLOOR ${checkpoint.floor}`;
+      this.checkpointStatus.textContent = this.checkpointPersisted
+        ? `Sanctuary checkpoint: Floor ${checkpoint.floor}. New Run replaces it.`
+        : 'Checkpoint available for this session only. Browser storage is unavailable.';
+    } else {
+      this.checkpointStatus.textContent = this.checkpointStore.lastError === 'invalid'
+        ? 'The saved checkpoint is incompatible or damaged. Start a new run.'
+        : this.checkpointStore.lastError === 'unavailable'
+          ? 'Browser storage is unavailable. Checkpoints will last for this session only.'
+          : 'Sanctuary checkpoints are saved in this browser.';
+    }
+  }
+
+  startNewRun() {
     this.currentFloor = 1;
+    this.lastCheckpointFloor = 1;
+    this.savedCheckpointState = null;
+    this.checkpointPersisted = false;
+    const cleared = this.checkpointStore.clear();
+    this.updateContinueButton();
     this.totalKills = 0;
     this.player.maxHits = INITIAL_PLAYER_STATS.MAX_HITS;
     this.player.currentHits = INITIAL_PLAYER_STATS.MAX_HITS;
@@ -164,12 +229,29 @@ class DemonicPagodaGame {
     this.player.currentStamina = INITIAL_PLAYER_STATS.MAX_STAMINA;
     this.player.marrow = INITIAL_PLAYER_STATS.MARROW;
     this.spellEngine.reset();
-    this.fontManager.upgradeCosts = { health: 40, agility: 25, stamina: 20 };
+    this.fontManager.reset();
 
     this.startFloor(this.currentFloor);
+    if (!cleared) this.showCombatBanner('BROWSER CHECKPOINT COULD NOT BE CLEARED • STORAGE UNAVAILABLE', 3);
   }
 
-  startFloor(floorNum) {
+  startFloor(floorNum, drafts = null) {
+    this.currentFloor = floorNum;
+    this.gameMenu.close(false);
+    this.fontManager.close();
+    this.titleModal.classList.add('hidden');
+    this.gameOverModal.classList.add('hidden');
+    this.victoryModal.classList.add('hidden');
+    this.input.reset();
+    this.floorClearTimer = 0;
+    this.rewardedEnemies.clear();
+    clearTimeout(this.bannerTimeout);
+    this.combatBanner.classList.add('hidden');
+    this.castBarContainer.classList.add('hidden');
+    this.castProgressFill.style.width = '0%';
+    this.castTimerText.textContent = '0.0s';
+    this.castSpellName.textContent = '';
+    this.renderer.resetTransientState();
     this.grid.reset();
     this.player.resetPosition(4, 8);
     this.player.restoreStamina(); // replenish floor stamina
@@ -178,10 +260,10 @@ class DemonicPagodaGame {
     if (FLOORS_CONFIG.SAFE_FLOORS.includes(floorNum)) {
       this.gameState = 'SAFE_FONT';
       this.enemies = [];
-      this.saveCheckpoint(floorNum);
-      this.updateHUD();
-      this.fontManager.open(floorNum);
-      this.showCombatBanner(`SANCTUARY REACHED • CHECKPOINT SAVED (FLOOR ${floorNum})`, 2.5);
+      this.fontManager.open(floorNum, drafts);
+      this.showCombatBanner(this.checkpointPersisted
+        ? `SANCTUARY REACHED • CHECKPOINT SAVED (FLOOR ${floorNum})`
+        : `SANCTUARY REACHED • SESSION CHECKPOINT ONLY (FLOOR ${floorNum}) • STORAGE UNAVAILABLE`, 3);
       return;
     }
 
@@ -241,21 +323,33 @@ class DemonicPagodaGame {
   }
 
   saveCheckpoint(floorNum) {
+    if (this.gameState !== 'SAFE_FONT' || !FLOORS_CONFIG.SAFE_FLOORS.includes(floorNum)) return false;
     this.lastCheckpointFloor = floorNum;
     this.savedCheckpointState = {
+      version: CHECKPOINT_VERSION,
       floor: floorNum,
       maxHits: this.player.maxHits,
       agility: this.player.agility,
       maxStamina: this.player.maxStamina,
       marrow: this.player.marrow,
       totalKills: this.totalKills,
-      spells: this.spellEngine.equippedSpells.map(s => s ? { ...s } : null),
+      spells: this.spellEngine.equippedSpells.map(s => s ? s.id : null),
+      drafts: this.fontManager.currentDrafts.map(s => s.id),
       upgradeCosts: { ...this.fontManager.upgradeCosts }
     };
+    this.checkpointPersisted = this.checkpointStore.save(this.savedCheckpointState);
+    this.updateContinueButton();
+    if (!this.checkpointPersisted) this.showCombatBanner('CHECKPOINT KEPT FOR THIS SESSION • BROWSER STORAGE UNAVAILABLE', 3);
+    return this.checkpointPersisted;
   }
 
   handleGameOver(source) {
+    if (this.gameState !== 'PLAYING') return;
     this.gameState = 'GAME_OVER';
+    this.input.reset();
+    this.player.cancelCasting();
+    this.castBarContainer.classList.add('hidden');
+    this.updateHUD();
     horrorAudio.playDamageTaken();
     document.getElementById('go-floors').textContent = this.currentFloor;
     document.getElementById('go-kills').textContent = this.totalKills;
@@ -275,36 +369,43 @@ class DemonicPagodaGame {
     this.gameOverModal.classList.remove('hidden');
   }
 
-  reviveAtCheckpoint() {
-    this.gameOverModal.classList.add('hidden');
-    if (this.savedCheckpointState && this.lastCheckpointFloor > 1) {
-      // Restore player from checkpoint snapshot
-      this.player.maxHits = this.savedCheckpointState.maxHits;
-      this.player.currentHits = this.savedCheckpointState.maxHits;
-      this.player.setAgility(this.savedCheckpointState.agility);
-      this.player.maxStamina = this.savedCheckpointState.maxStamina;
-      this.player.currentStamina = this.savedCheckpointState.maxStamina;
-      this.player.marrow = this.savedCheckpointState.marrow;
-      this.totalKills = this.savedCheckpointState.totalKills;
-      this.fontManager.upgradeCosts = { ...this.savedCheckpointState.upgradeCosts };
-      this.spellEngine.equippedSpells = this.savedCheckpointState.spells.map(s => s ? { ...s } : null);
+  restoreCheckpoint() {
+    const checkpoint = validateCheckpoint(this.savedCheckpointState);
+    if (!checkpoint) return false;
+    const catalog = new Map(Object.values(SPELL_CATALOG).map(spell => [spell.id, spell]));
+    this.player.maxHits = checkpoint.maxHits;
+    this.player.currentHits = checkpoint.maxHits;
+    this.player.setAgility(checkpoint.agility);
+    this.player.maxStamina = checkpoint.maxStamina;
+    this.player.currentStamina = checkpoint.maxStamina;
+    this.player.marrow = checkpoint.marrow;
+    this.totalKills = checkpoint.totalKills;
+    this.fontManager.upgradeCosts = { ...checkpoint.upgradeCosts };
+    this.spellEngine.equippedSpells = checkpoint.spells.map(id => id ? { ...catalog.get(id) } : null);
+    this.lastCheckpointFloor = checkpoint.floor;
+    this.startFloor(checkpoint.floor, checkpoint.drafts.map(id => catalog.get(id)));
+    return true;
+  }
 
-      this.currentFloor = this.lastCheckpointFloor;
-      this.startFloor(this.currentFloor);
-    } else {
-      this.startGame();
-    }
+  reviveAtCheckpoint() {
+    if (!this.restoreCheckpoint()) this.startNewRun();
   }
 
   restartFromFloor1() {
-    this.gameOverModal.classList.add('hidden');
-    this.lastCheckpointFloor = 1;
-    this.savedCheckpointState = null;
-    this.startGame();
+    this.startNewRun();
   }
 
   handleVictory() {
+    if (this.gameState !== 'PLAYING' && this.gameState !== 'SAFE_FONT') return;
     this.gameState = 'VICTORY';
+    this.input.reset();
+    this.player.cancelCasting();
+    this.castBarContainer.classList.add('hidden');
+    this.savedCheckpointState = null;
+    this.lastCheckpointFloor = 1;
+    this.checkpointPersisted = false;
+    this.checkpointStore.clear();
+    this.updateContinueButton();
     horrorAudio.playGong(false);
     document.getElementById('vic-kills').textContent = this.totalKills;
     document.getElementById('vic-hp').textContent = this.player.currentHits;
@@ -313,6 +414,7 @@ class DemonicPagodaGame {
   }
 
   advanceFloor() {
+    if (this.gameState !== 'PLAYING' && this.gameState !== 'SAFE_FONT') return;
     this.currentFloor++;
     if (this.currentFloor > FLOORS_CONFIG.TOTAL_FLOORS) {
       this.handleVictory();
@@ -385,52 +487,50 @@ class DemonicPagodaGame {
     }
   }
 
-  gameLoop(timestamp) {
-    const dt = Math.min(0.1, (timestamp - this.lastTime) / 1000);
-    this.lastTime = timestamp;
+  updateGameplay(dt) {
+    if (this.gameState !== 'PLAYING') return;
+    this.processMovementInput();
+    if (this.gameState !== 'PLAYING') return;
+    this.grid.update(dt);
+    if (this.gameState !== 'PLAYING') return;
+    this.player.update(dt, this.enemies);
+    if (this.gameState !== 'PLAYING') return;
 
-    if (this.gameState === 'PLAYING') {
-      this.processMovementInput();
-
-      // Update grid
-      this.grid.update(dt);
-
-      // Update player
-      this.player.update(dt, this.enemies);
-
-      // Update enemies & handle deaths
-      let livingEnemies = 0;
-      this.enemies.forEach(enemy => {
-        if (enemy.alive) {
-          livingEnemies++;
-          enemy.update(dt, this.player, this.enemies);
-
-          // Check if enemy died from status or blast
-          if (!enemy.alive) {
-            this.totalKills++;
-            this.player.addMarrow(enemy.marrow);
-            this.renderer.spawnBloodParticles(enemy.renderX + 35, enemy.renderY + 35, 24);
-            this.renderer.addFloatingText(`+${enemy.marrow} MARROW`, enemy.renderX + 35, enemy.renderY + 20, '#e0b04a');
-          }
-        }
-      });
-
-      // Floor clearance check
-      if (livingEnemies === 0 && this.enemies.length > 0) {
-        this.floorClearTimer += dt;
-        if (this.floorClearTimer >= 1.4) {
-          this.floorClearTimer = 0;
-          if (this.currentFloor === 26) {
-            this.handleVictory();
-          } else {
-            this.advanceFloor();
-          }
-        }
+    // Use the starting roster: newly summoned enemies begin updating next frame.
+    for (const enemy of [...this.enemies]) {
+      if (this.gameState !== 'PLAYING') return;
+      if (enemy.alive) enemy.update(dt, this.player, this.enemies);
+    }
+    if (this.gameState !== 'PLAYING') return;
+    for (const enemy of this.enemies) {
+      if (!enemy.alive && !this.rewardedEnemies.has(enemy)) {
+        this.rewardedEnemies.add(enemy);
+        this.totalKills++;
+        this.player.addMarrow(enemy.marrow);
+        this.renderer.spawnBloodParticles(enemy.renderX + 35, enemy.renderY + 35, 24);
+        this.renderer.addFloatingText(`+${enemy.marrow} MARROW`, enemy.renderX + 35, enemy.renderY + 20, '#e0b04a');
       }
     }
 
+    if (this.enemies.length > 0 && !this.enemies.some(enemy => enemy.alive)) {
+      this.floorClearTimer += dt;
+      if (this.floorClearTimer >= 1.4) {
+        this.floorClearTimer = 0;
+        if (this.currentFloor === FLOORS_CONFIG.BOSS_FLOOR) this.handleVictory();
+        else this.advanceFloor();
+      }
+    } else {
+      this.floorClearTimer = 0;
+    }
+  }
+
+  gameLoop(timestamp) {
+    const dt = Math.min(0.1, (timestamp - this.lastTime) / 1000);
+    this.lastTime = timestamp;
+    this.updateGameplay(dt);
+
     // Update renderer effects
-    this.renderer.update(dt);
+    if (this.gameState !== 'PAUSED') this.renderer.update(dt);
 
     // Draw frame
     this.renderer.render(this.player, this.enemies, null);
@@ -443,4 +543,3 @@ class DemonicPagodaGame {
 window.addEventListener('DOMContentLoaded', () => {
   window.game = new DemonicPagodaGame();
 });
-

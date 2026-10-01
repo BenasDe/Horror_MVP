@@ -63,8 +63,10 @@ export class PagodaGrid {
         t.owner = null;
         t.effects = { player: null, enemy: null, environment: null };
         t.telegraphs = { player: null, enemy: null };
-        t.telegraph.active = false;
-        t.telegraph.timer = 0;
+        t.telegraph = {
+          active: false, timer: 0, totalDuration: 0,
+          targetStatus: TILE_STATUS.NORMAL, owner: null, onTrigger: null
+        };
       }
     }
   }
