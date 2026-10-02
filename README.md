@@ -60,7 +60,15 @@ With Node.js 20 or later, run:
 npm test
 ```
 
-The tests use Node's built-in test runner and require no package installation. They cover checkpoint validation and reloads, new-run resets, pauses during movement and casting, focus loss, input cancellation, storage failures, terminal-state transitions, audio routing, and renderer cleanup. Gameplay still runs as a static site; no build step is needed.
+The tests use Node's built-in test runner and require no package installation. They cover checkpoint validation and reloads, new-run resets, pauses during movement and casting, focus loss, input cancellation, storage failures, terminal-state transitions, audio routing, and renderer resource reuse and cleanup. Renderer tests track allocations and disposal with scene doubles; they do not measure GPU performance. Gameplay still runs as a static site; no build step is needed.
+
+## Renderer Performance
+
+The Three.js renderer retains each tile's hazard overlays and toggles their visibility as effects change. Telegraph countdown ticks reuse the same ring; overlapping player/enemy effects and enemy telegraph color priority are preserved. Geometry and immutable materials are cached for the renderer's lifetime. Enemy models reuse those geometries, own their mutable materials, and return to bounded pools between floors (up to eight of each regular enemy type and one Emperor).
+
+Blood, bone debris, and torch embers use three instanced batches with reusable particle records. Cosmetic particle counts are capped at 256 blood droplets, 196 bone fragments, and 36 embers; additional particles are skipped when a batch is full. Damage, spell timing, tile effects, and enemy counts are unaffected. A floor reset clears visible effects while retaining the caches. `game.renderer.dispose()` releases active and pooled model materials, shared resources, instance buffers, shadow maps, and the resize listener when the renderer is permanently removed.
+
+Open `http://localhost:8000/?renderStats=1` to show draw calls, triangles, GPU resource counts, cached models, and active particles. The browser console exposes detailed counters through `window.game.renderer.getPerformanceStats()`, including cumulative geometry/model creations and skipped particles. After an effect or model has been seen, repeating it within the pool limits should reuse existing resources. Compare the same floor, viewport, and effects when profiling; these counters are diagnostics, not an FPS benchmark.
 
 ---
 
